@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: intifix-backend
+
+  # 🐘 CONFIGURACIÓN DE POSTGRESQL EN LA NUBE
+  datasource:
+    url: jdbc:postgresql://${DB_POSTGRES_HOST:localhost}:${DB_POSTGRES_PORT:5432}/${DB_POSTGRES_NAME:intifix_db}
+    username: ${DB_POSTGRES_USER:postgres}
+    password: ${DB_POSTGRES_PASSWORD:root}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update # En producción se cambia a 'validate', pero para desarrollo 'update' es soplete
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # 🍃 CONFIGURACIÓN DE MONGODB ATLAS EN LA NUBE
+  data:
+    mongodb:
+      uri: mongodb+srv://${DB_MONGO_USER:admin}:${DB_MONGO_PASSWORD:secret}@${DB_MONGO_HOST:cluster0.xxxx.mongodb.net}/${DB_MONGO_NAME:intifix_nosql}?retryWrites=true&w=majority
+
+server:
+  port: 8080
+  error:
+    include-message: always
