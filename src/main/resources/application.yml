@@ -2,17 +2,23 @@ spring:
   application:
     name: intifix-backend
 
-  # 🐘 CONFIGURACIÓN DE POSTGRESQL EN LA NUBE
   datasource:
     url: jdbc:postgresql://${DB_POSTGRES_HOST:localhost}:${DB_POSTGRES_PORT:5432}/${DB_POSTGRES_NAME:intifix_db}
     username: ${DB_POSTGRES_USER:postgres}
     password: ${DB_POSTGRES_PASSWORD:root}
     driver-class-name: org.postgresql.Driver
 
+  # BD cloud ya provisionada: si no existe flyway_schema_history, V1 (espejo
+  # del esquema productivo) se marca como baseline sin ejecutarse y solo
+  # corren las migraciones nuevas (V2+). En BDs locales vacías corre todo.
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 1
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update # En producción se cambia a 'validate', pero para desarrollo 'update' es soplete
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -20,12 +26,32 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # 🍃 CONFIGURACIÓN DE MONGODB ATLAS EN LA NUBE
   data:
     mongodb:
       uri: mongodb+srv://${DB_MONGO_USER:admin}:${DB_MONGO_PASSWORD:secret}@${DB_MONGO_HOST:cluster0.xxxx.mongodb.net}/${DB_MONGO_NAME:intifix_nosql}?retryWrites=true&w=majority
+      # Crea los @Indexed/@CompoundIndex declarados en las entidades al arrancar
+      # (Spring Data Mongo lo trae desactivado por defecto desde 3.0).
+      auto-index-creation: true
+
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+
+  auth:
+    max-failed-attempts: 5
 
 server:
   port: 8080
+
   error:
     include-message: always

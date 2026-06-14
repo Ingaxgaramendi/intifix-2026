@@ -2,6 +2,7 @@ package com.intifix.modules.technicians.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalTime;
 import java.util.UUID;
 
@@ -17,14 +18,13 @@ public class HorarioTecnico {
     @Id
     @Column(name = "id_horario")
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID idHorario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario_tecnico", nullable = false)
-    private PerfilTecnicoOperativo tecnico;
+    @Column(name = "id_usuario_tecnico", nullable = false, updatable = false)
+    private UUID idUsuarioTecnico;
 
     @Column(name = "dia_semana", nullable = false)
-    private Integer diaSemana; // 0 a 6
+    private Integer diaSemana;
 
     @Column(name = "hora_inicio", nullable = false)
     private LocalTime horaInicio;

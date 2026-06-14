@@ -2,7 +2,9 @@ package com.intifix.modules.technicians.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.OffsetDateTime;
+
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,17 +17,12 @@ import java.util.UUID;
 public class ReputacionTecnico {
 
     @Id
-    @Column(name = "id_usuario_tecnico")
+    @Column(name = "id_usuario_tecnico", nullable = false, updatable = false)
     private UUID idUsuarioTecnico;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // Vincula la PK de esta tabla con la PK de PerfilTecnicoOperativo de forma soplete
-    @JoinColumn(name = "id_usuario_tecnico")
-    private PerfilTecnicoOperativo tecnico;
-
-    @Column(name = "promedio", nullable = false, precision = 3, scale = 2)
+    @Column(name = "promedio_calificacion", nullable = false, precision = 3, scale = 2)
     @Builder.Default
-    private Double promedio = 0.00;
+    private BigDecimal promedioCalificacion = BigDecimal.ZERO;
 
     @Column(name = "total_resenas", nullable = false)
     @Builder.Default
@@ -37,5 +34,11 @@ public class ReputacionTecnico {
 
     @Column(name = "actualizado_en", nullable = false)
     @Builder.Default
-    private OffsetDateTime actualizadoEn = OffsetDateTime.now();
+    private ZonedDateTime actualizadoEn = ZonedDateTime.now();
+
+    @PrePersist
+    @PreUpdate
+    protected void onUpdate() {
+        actualizadoEn = ZonedDateTime.now();
+    }
 }

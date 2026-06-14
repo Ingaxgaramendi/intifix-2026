@@ -2,6 +2,7 @@ package com.intifix.modules.technicians.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.util.UUID;
 
 @Entity
@@ -16,7 +17,7 @@ public class Especialidad {
     @Id
     @Column(name = "id_especialidad")
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID idEspecialidad;
 
     @Column(name = "nombre", nullable = false, unique = true, length = 150)
     private String nombre;

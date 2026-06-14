@@ -1,12 +1,24 @@
 package com.intifix.modules.auth.service;
 
-import com.intifix.modules.auth.dto.LoginRequest;
-import com.intifix.modules.auth.dto.RegisterRequest;
-import com.intifix.modules.auth.dto.RefreshRequest;
-import com.intifix.modules.auth.dto.AuthResponse;
+import com.intifix.modules.auth.dto.*;
+
+import java.util.UUID;
 
 public interface AuthService {
-    AuthResponse registrar(RegisterRequest request);
+
+    AuthResponse register(RegisterRequest request);
+
     AuthResponse login(LoginRequest request);
-    AuthResponse refrescarSesion(RefreshRequest request);
+
+    AuthResponse refreshToken(RefreshRequest request);
+
+    void logout(LogoutRequest request);
+
+    UserSessionResponse validateSession(String token);
+
+    /**
+     * El usuario actual se identifica por su UUID (el principal autenticado),
+     * no por correo: el correo es un atributo mutable, no una identidad.
+     */
+    CurrentUserResponse getCurrentUser(UUID idUsuario);
 }

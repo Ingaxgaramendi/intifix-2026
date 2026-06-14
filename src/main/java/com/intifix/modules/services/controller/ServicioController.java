@@ -1,60 +1,258 @@
 package com.intifix.modules.services.controller;
 
-import com.intifix.modules.services.dto.*;
-import com.intifix.modules.services.service.GestionServicioService;
+import com.intifix.modules.services.dto.request.ActualizarServicioRequest;
+import com.intifix.modules.services.dto.request.CambiarEstadoServicioRequest;
+import com.intifix.modules.services.dto.request.CrearServicioRequest;
+import com.intifix.modules.services.dto.response.ServicioDetalleResponse;
+import com.intifix.modules.services.dto.response.ServicioResponse;
+import com.intifix.modules.services.enums.EstadoServicio;
+import com.intifix.modules.services.service.ServicioService;
+import com.intifix.modules.services.util.PageableUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.intifix.shared.api.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+/**
+ * REST controller for Servicio operations.
+ * 
+ * @author INTIFIX Architecture Team
+ * @version 1.0
+ */
 @RestController
 @RequestMapping("/api/v1/services")
 @RequiredArgsConstructor
+@Tag(name = "Servicios", description = "Operaciones de gestión de servicios")
 public class ServicioController {
 
-    private final GestionServicioService servicioService;
+    private final ServicioService servicioService;
 
-    // SOLO EL CLIENTE PUEDE REGISTRAR ÓRDENES DE TRABAJO
-    @PostMapping("/publicar")
+    /** Propiedades por las que se permite ordenar los listados de servicios. */
+    private static final Set<String> ORDEN_PERMITIDO =
+        Set.of("fechaCreacion", "fechaProgramada", "prioridad", "estado");
+
+    /** Orden por defecto cuando el solicitado es inválido o está vacío. */
+    private static final Sort ORDEN_DEFECTO = Sort.by(Sort.Direction.DESC, "fechaCreacion");
+
+    @PostMapping
     @PreAuthorize("hasRole('CLIENTE')")
-    public ResponseEntity < ApiResponse < ServicioResponse >> crearOrden(@RequestBody ServicioRequest request) {
-        ServicioResponse response = servicioService.publicarServicio(request);
-        return ResponseEntity.ok(ApiResponse.success("¡Orden de servicio indexada correctamente, mi rey!", response));
+    @Operation(summary = "Crear servicio", description = "Crea un nuevo servicio para un cliente")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Servicio creado exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de solicitud inválidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo clientes pueden crear servicios"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Cliente o ubicación no encontrados")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> crearServicio(
+            @Valid @RequestBody CrearServicioRequest request) {
+        ServicioResponse response = servicioService.crearServicio(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Servicio creado exitosamente", response));
     }
 
-    // SOLO EL TÉCNICO ACCEDE AL RADAR PARA VER TRABAJOS LIBRES CERCANOS
-    @GetMapping("/radar")
-    @PreAuthorize("hasRole('TECNICO')")
-    public ResponseEntity < ApiResponse < List < ServicioResponse >>> listarDisponibles() {
-        List < ServicioResponse > disponibles = servicioService.listarDisponiblesParaCotizar();
-        return ResponseEntity.ok(ApiResponse.success("Trabajos listos para recibir ofertas localizados.", disponibles));
-    }
-
-    // AMBOS PUEDEN SUBIR FOTOS (El técnico como sustento y el cliente para mostrar el problema)
-    @PostMapping("/{idServicio}/evidencias")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'TECNICO')")
-    public ResponseEntity < ApiResponse < String >> subirMultimedia(@PathVariable UUID idServicio, @RequestBody EvidenciaRequest request) {
-        servicioService.subirEvidenciaServicio(idServicio, request);
-        return ResponseEntity.ok(ApiResponse.success("Evidencia de campo registrada de forma segura.", null));
-    }
-
-    // SOLO EL CLIENTE CIERRA EL CONTRATO Y CALIFICA CON ESTRELLAS
-    @PostMapping("/{idServicio}/calificar")
+    @PutMapping("/{idServicio}")
     @PreAuthorize("hasRole('CLIENTE')")
-    public ResponseEntity < ApiResponse < String >> finalizarYCalificar(@PathVariable UUID idServicio, @RequestBody CalificacionRequest request) {
-        servicioService.calificarYFinalizarServicio(idServicio, request);
-        return ResponseEntity.ok(ApiResponse.success("Servicio cerrado oficialmente. Reputación del técnico recalculada.", null));
+    @Operation(summary = "Actualizar servicio", description = "Actualiza un servicio existente")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicio actualizado exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de solicitud inválidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Servicio no modificable")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> actualizarServicio(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio,
+            @Valid @RequestBody ActualizarServicioRequest request) {
+        ServicioResponse response = servicioService.actualizarServicio(idServicio, request);
+        return ResponseEntity.ok(ApiResponse.success("Servicio actualizado exitosamente", response));
     }
 
-    // CONTROL DE ESTADOS GENÉRICO (Para flujos internos o cancelaciones rápidas)
     @PatchMapping("/{idServicio}/estado")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'TECNICO', 'ADMIN')")
-    public ResponseEntity < ApiResponse < String >> cambiarEstadoManual(@PathVariable UUID idServicio, @RequestParam String nuevoEstado, @RequestParam String comentario) {
-        servicioService.actualizarEstadoManual(idServicio, nuevoEstado, comentario);
-        return ResponseEntity.ok(ApiResponse.success("Auditoría de estado actualizada.", null));
+    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @Operation(summary = "Cambiar estado del servicio", description = "Cambia el estado de un servicio")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Estado del servicio cambiado exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de solicitud inválidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Servicio no modificable")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> cambiarEstadoServicio(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio,
+            @Valid @RequestBody CambiarEstadoServicioRequest request) {
+        ServicioResponse response = servicioService.cambiarEstadoServicio(idServicio, request);
+        return ResponseEntity.ok(ApiResponse.success("Estado del servicio cambiado exitosamente", response));
+    }
+
+    @DeleteMapping("/{idServicio}")
+    @PreAuthorize("hasRole('CLIENTE')")
+    @Operation(summary = "Eliminar servicio", description = "Elimina un servicio (solo si está en estado PENDIENTE)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Servicio eliminado exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Servicio no eliminable")
+    })
+    public ResponseEntity<Void> eliminarServicio(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio) {
+        servicioService.eliminarServicio(idServicio);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{idServicio}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Obtener servicio por ID", description = "Obtiene un servicio por su ID")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicio obtenido exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> obtenerServicioPorId(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio) {
+        ServicioResponse response = servicioService.obtenerServicioPorId(idServicio);
+        return ResponseEntity.ok(ApiResponse.success("Servicio obtenido exitosamente", response));
+    }
+
+    @GetMapping("/{idServicio}/detalle")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Obtener detalle del servicio", description = "Obtiene el detalle completo de un servicio")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Detalle del servicio obtenido exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado")
+    })
+    public ResponseEntity<ApiResponse<ServicioDetalleResponse>> obtenerDetalleServicioPorId(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio) {
+        ServicioDetalleResponse response = servicioService.obtenerDetalleServicioPorId(idServicio);
+        return ResponseEntity.ok(ApiResponse.success("Detalle del servicio obtenido exitosamente", response));
+    }
+
+    @GetMapping("/cliente/{idCliente}")
+    @PreAuthorize("hasRole('ADMIN') or #idCliente == authentication.principal.id")
+    @Operation(summary = "Obtener servicios por cliente", description = "Obtiene los servicios de un cliente con paginación. Solo el propio cliente o un ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicios del cliente obtenidos exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo el propio cliente o ADMIN")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerServiciosPorCliente(
+            @Parameter(description = "ID del cliente") @PathVariable UUID idCliente,
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        Page<ServicioResponse> response = servicioService.obtenerServiciosPorCliente(idCliente, saneado);
+        return ResponseEntity.ok(ApiResponse.success("Servicios del cliente obtenidos exitosamente", response));
+    }
+
+    @GetMapping("/disponibles")
+    @PreAuthorize("hasAnyRole('TECNICO', 'ADMIN')")
+    @Operation(summary = "Marketplace de servicios disponibles", description = "Lista los servicios abiertos (PENDIENTE/COTIZANDO) para que los técnicos puedan cotizar")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicios disponibles obtenidos exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo técnicos o ADMIN")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerServiciosDisponibles(
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        Page<ServicioResponse> response = servicioService.obtenerServiciosDisponibles(saneado);
+        return ResponseEntity.ok(ApiResponse.success("Servicios disponibles obtenidos exitosamente", response));
+    }
+
+    @GetMapping("/ubicacion/{idUbicacion}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Obtener servicios por ubicación", description = "Obtiene todos los servicios de una ubicación con paginación. Solo ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicios de la ubicación obtenidos exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo ADMIN")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerServiciosPorUbicacion(
+            @Parameter(description = "ID de la ubicación") @PathVariable UUID idUbicacion,
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        Page<ServicioResponse> response = servicioService.obtenerServiciosPorUbicacion(idUbicacion, saneado);
+        return ResponseEntity.ok(ApiResponse.success("Servicios de la ubicación obtenidos exitosamente", response));
+    }
+
+    @GetMapping("/estado/{estado}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Obtener servicios por estado", description = "Obtiene todos los servicios por estado con paginación. Solo ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicios por estado obtenidos exitosamente"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo ADMIN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Estado inválido")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerServiciosPorEstado(
+            @Parameter(description = "Estado del servicio", schema = @Schema(type = "string", allowableValues = {"PENDIENTE", "COTIZANDO", "ASIGNADO", "EN_PROCESO", "FINALIZADO", "CANCELADO"})) @PathVariable EstadoServicio estado,
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        Page<ServicioResponse> response = servicioService.obtenerServiciosPorEstado(estado, saneado);
+        return ResponseEntity.ok(ApiResponse.success("Servicios por estado obtenidos exitosamente", response));
+    }
+
+    @GetMapping("/buscar")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Buscar servicios por título", description = "Busca servicios por título con paginación. Solo ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicios encontrados"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo ADMIN")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> buscarServiciosPorTitulo(
+            @Parameter(description = "Título a buscar") @RequestParam String titulo,
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        Page<ServicioResponse> response = servicioService.buscarServiciosPorTitulo(titulo, saneado);
+        return ResponseEntity.ok(ApiResponse.success("Servicios encontrados", response));
+    }
+
+    @GetMapping("/cliente/{idCliente}/count")
+    @PreAuthorize("hasRole('ADMIN') or #idCliente == authentication.principal.id")
+    @Operation(summary = "Contar servicios por cliente", description = "Cuenta el total de servicios de un cliente. Solo el propio cliente o un ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Total de servicios del cliente calculado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo el propio cliente o ADMIN")
+    })
+    public ResponseEntity<ApiResponse<Long>> contarServiciosPorCliente(
+            @Parameter(description = "ID del cliente") @PathVariable UUID idCliente) {
+        long total = servicioService.contarServiciosPorCliente(idCliente);
+        return ResponseEntity.ok(ApiResponse.success("Total de servicios del cliente calculado", total));
+    }
+
+    @GetMapping("/estado/{estado}/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Contar servicios por estado", description = "Cuenta el total de servicios por estado. Solo ADMIN.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Total de servicios por estado calculado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No autorizado - solo ADMIN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Estado inválido")
+    })
+    public ResponseEntity<ApiResponse<Long>> contarServiciosPorEstado(
+            @Parameter(description = "Estado del servicio", schema = @Schema(type = "string", allowableValues = {"PENDIENTE", "COTIZANDO", "ASIGNADO", "EN_PROCESO", "FINALIZADO", "CANCELADO"})) @PathVariable EstadoServicio estado) {
+        long total = servicioService.contarServiciosPorEstado(estado);
+        return ResponseEntity.ok(ApiResponse.success("Total de servicios por estado calculado", total));
     }
 }

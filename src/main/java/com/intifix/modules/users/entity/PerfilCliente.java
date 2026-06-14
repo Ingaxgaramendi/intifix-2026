@@ -1,9 +1,20 @@
 package com.intifix.modules.users.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
+import org.springframework.data.domain.Persistable;
 
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -13,16 +24,11 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PerfilCliente {
+public class PerfilCliente implements Persistable<UUID> {
 
     @Id
-    @Column(name = "id_usuario", nullable = false)
-    private UUID id;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "id_usuario")
-    private Usuario usuario;
+    @Column(name = "id_usuario", nullable = false, updatable = false)
+    private UUID idUsuario;
 
     @Column(name = "nombres_completos", nullable = false, length = 255)
     private String nombresCompletos;
@@ -33,6 +39,27 @@ public class PerfilCliente {
     @Column(name = "foto_perfil_url", columnDefinition = "TEXT")
     private String fotoPerfilUrl;
 
-    @Column(name = "creado_en", nullable = false, updatable = false, insertable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private ZonedDateTime creadoEn;
+    /**
+     * Generado por PostgreSQL ({@code DEFAULT CURRENT_TIMESTAMP}).
+     * Hibernate excluye la columna del INSERT y la relee vía RETURNING.
+     */
+    @Generated(event = EventType.INSERT)
+    @Column(name = "creado_en", nullable = false, insertable = false, updatable = false)
+    private OffsetDateTime creadoEn;
+
+    @Override
+    public UUID getId() {
+        return idUsuario;
+    }
+
+    /**
+     * El id se asigna manualmente (proviene del módulo de identidad), por lo que
+     * Spring Data no puede inferir si la entidad es nueva. Sin esto, cada save()
+     * de una entidad nueva ejecutaría un SELECT previo (merge) innecesario.
+     */
+    @Override
+    @Transient
+    public boolean isNew() {
+        return creadoEn == null;
+    }
 }
