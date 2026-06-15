@@ -1,5 +1,6 @@
 package com.intifix.modules.auth.service;
 
+import com.intifix.modules.audit.event.UserCreatedEvent;
 import com.intifix.modules.auth.config.AuthProperties;
 import com.intifix.modules.auth.dto.*;
 import com.intifix.modules.auth.entity.EstadoUsuario;
@@ -11,6 +12,7 @@ import com.intifix.modules.auth.security.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final AuthProperties authProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -57,6 +60,14 @@ public class AuthServiceImpl implements AuthService {
 
         UsuarioAuth usuarioGuardado = usuarioAuthRepository.save(nuevoUsuario);
         log.info("Usuario registrado exitosamente: {}", usuarioGuardado.getIdUsuario());
+
+        // Auditoría desacoplada: el módulo audit registra el alta de usuario.
+        eventPublisher.publishEvent(new UserCreatedEvent(
+            usuarioGuardado.getIdUsuario(),
+            usuarioGuardado.getCorreo(),
+            null,
+            String.valueOf(usuarioGuardado.getRoles())
+        ));
 
         return generateAuthResponse(usuarioGuardado);
     }

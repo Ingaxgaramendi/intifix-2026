@@ -14,6 +14,9 @@ import com.intifix.modules.services.mapper.CotizacionMapper;
 import com.intifix.modules.services.repository.CotizacionRepository;
 import com.intifix.modules.services.repository.ServicioRepository;
 import com.intifix.modules.services.service.CotizacionService;
+import com.intifix.modules.audit.aspect.Auditable;
+import com.intifix.modules.audit.entity.AuditAction;
+import com.intifix.modules.audit.entity.AuditModule;
 import com.intifix.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +49,7 @@ public class CotizacionServiceImpl implements CotizacionService {
 
     @Override
     @Transactional
+    @Auditable(module = AuditModule.SERVICES, action = AuditAction.CREAR, resourceType = "Cotizacion")
     public CotizacionResponse crearCotizacion(CrearCotizacionRequest request) {
         UUID idUsuarioTecnico = SecurityUtils.currentUserId();
         log.info("Creando cotización para servicio: {} por técnico autenticado: {}", 

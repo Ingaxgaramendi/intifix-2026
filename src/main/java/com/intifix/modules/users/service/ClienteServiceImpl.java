@@ -12,8 +12,10 @@ import com.intifix.modules.users.exception.UsuarioNoExisteException;
 import com.intifix.modules.users.gateway.UserGateway;
 import com.intifix.modules.users.mapper.ClienteMapper;
 import com.intifix.modules.users.repository.PerfilClienteRepository;
+import com.intifix.modules.audit.event.UserUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class ClienteServiceImpl implements ClienteService {
     private final PerfilClienteRepository perfilClienteRepository;
     private final ClienteMapper clienteMapper;
     private final UserGateway userGateway;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -81,12 +84,18 @@ public class ClienteServiceImpl implements ClienteService {
             throw DniDuplicadoException.byDniRuc(maskDocumento(nuevoDniRuc));
         }
 
+        // Snapshot previo para el diff de auditoría (antes de mutar la entidad).
+        ClienteResponse anterior = clienteMapper.toResponse(perfilCliente);
+
         clienteMapper.updateEntityFromDto(request, perfilCliente);
 
         PerfilCliente actualizado = perfilClienteRepository.save(perfilCliente);
         log.info("Perfil de cliente actualizado para idUsuario: {}", actualizado.getIdUsuario());
 
-        return clienteMapper.toResponse(actualizado);
+        ClienteResponse nuevo = clienteMapper.toResponse(actualizado);
+        eventPublisher.publishEvent(new UserUpdatedEvent(idUsuario, anterior, nuevo));
+
+        return nuevo;
     }
 
     @Override

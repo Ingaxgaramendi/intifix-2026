@@ -9,6 +9,8 @@ import com.intifix.modules.services.entity.HistorialServicio;
 import com.intifix.modules.services.entity.Servicio;
 import com.intifix.modules.services.enums.EstadoServicio;
 import com.intifix.modules.services.event.ServicioCreadoEvent;
+import com.intifix.modules.audit.event.ServiceCreatedEvent;
+import com.intifix.modules.audit.event.ServiceCancelledEvent;
 import com.intifix.modules.services.exception.*;
 import com.intifix.modules.services.gateway.GeolocationGateway;
 import com.intifix.modules.services.gateway.UserGateway;
@@ -83,6 +85,12 @@ public class ServicioServiceImpl implements ServicioService {
             guardado.getFechaCreacion()
         ));
 
+        // Auditoría desacoplada del alta de servicio.
+        eventPublisher.publishEvent(new ServiceCreatedEvent(
+            guardado.getIdServicio(),
+            guardado.getIdCliente()
+        ));
+
         log.info("Servicio creado exitosamente: {}", guardado.getIdServicio());
         return servicioMapper.toResponse(guardado);
     }
@@ -150,6 +158,14 @@ public class ServicioServiceImpl implements ServicioService {
             request.getComentario(),
             SecurityUtils.currentUserId()
         );
+
+        if (estadoNuevo == EstadoServicio.CANCELADO) {
+            eventPublisher.publishEvent(new ServiceCancelledEvent(
+                actualizado.getIdServicio(),
+                SecurityUtils.currentUserId(),
+                request.getComentario()
+            ));
+        }
 
         log.info("Estado del servicio cambiado exitosamente: {} de {} a {}",
             idServicio, estadoAnterior, estadoNuevo);

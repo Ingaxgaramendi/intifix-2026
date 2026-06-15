@@ -1,6 +1,6 @@
 package com.intifix.auth;
 
-import com.intifix.modules.users.entity.RolUsuario;
+import com.intifix.modules.auth.entity.RolUsuario;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

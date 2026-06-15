@@ -22,6 +22,7 @@ import com.intifix.modules.payments.exception.ReembolsoNoPermitidoException;
 import com.intifix.modules.payments.gateway.ServiceGateway;
 import com.intifix.modules.payments.mapper.PagoMapper;
 import com.intifix.modules.payments.provider.PaymentProvider;
+import com.intifix.modules.audit.event.PaymentCompletedEvent;
 import com.intifix.modules.payments.repository.PagoRepository;
 import com.intifix.modules.payments.service.interfaces.FacturaService;
 import com.intifix.modules.payments.service.interfaces.PagoService;
@@ -143,6 +144,13 @@ public class PagoServiceImpl implements PagoService {
                     pagoActualizado.getFechaPago()
             ));
 
+            eventPublisher.publishEvent(new PaymentCompletedEvent(
+                    pagoActualizado.getIdPago(),
+                    pagoActualizado.getIdServicio(),
+                    SecurityUtils.currentUserId(),
+                    pagoActualizado.getMontoTotal()
+            ));
+
             generarFacturaAutomatica(pagoActualizado);
 
             log.info("Pago procesado exitosamente: {}", pagoActualizado.getIdPago());
@@ -191,6 +199,14 @@ public class PagoServiceImpl implements PagoService {
                 pagoActualizado.getTransactionId(),
                 pagoActualizado.getMontoTotal(),
                 pagoActualizado.getFechaPago()
+        ));
+
+        // Confirmación puede venir de un webhook (sin usuario en contexto): userId null.
+        eventPublisher.publishEvent(new PaymentCompletedEvent(
+                pagoActualizado.getIdPago(),
+                pagoActualizado.getIdServicio(),
+                null,
+                pagoActualizado.getMontoTotal()
         ));
 
         generarFacturaAutomatica(pagoActualizado);

@@ -10,6 +10,7 @@ import com.intifix.modules.chat.entity.EstadoMensaje;
 import com.intifix.modules.chat.entity.MensajeDocument;
 import com.intifix.modules.chat.entity.TipoMensaje;
 import com.intifix.modules.chat.event.MensajeEnviadoEvent;
+import com.intifix.modules.audit.event.ChatMessageSentEvent;
 import com.intifix.modules.chat.exception.ArchivoInvalidoException;
 import com.intifix.modules.chat.exception.ConversacionBloqueadaException;
 import com.intifix.modules.chat.exception.MensajeNoEncontradoException;
@@ -74,6 +75,8 @@ public class MensajeServiceImpl implements MensajeService {
         MensajeResponse response = mensajeMapper.toResponse(guardado);
 
         eventPublisher.publishEvent(new MensajeEnviadoEvent(conv.getId(), emisor, destinatario, response));
+        // Auditoría de actividad WebSocket (websocket_logs), desacoplada.
+        eventPublisher.publishEvent(new ChatMessageSentEvent(conv.getId(), emisor, destinatario, guardado.getId()));
         log.info("Mensaje {} enviado en conversación {}", guardado.getId(), conv.getId());
         return response;
     }

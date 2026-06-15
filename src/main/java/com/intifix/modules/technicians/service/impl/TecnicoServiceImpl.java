@@ -17,8 +17,11 @@ import com.intifix.modules.technicians.gateway.GeolocationClient;
 import com.intifix.modules.technicians.mapper.TecnicoMapper;
 import com.intifix.modules.technicians.repository.PerfilTecnicoRepository;
 import com.intifix.modules.technicians.service.TecnicoService;
+import com.intifix.modules.audit.event.TechnicianApprovedEvent;
+import com.intifix.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,7 @@ public class TecnicoServiceImpl implements TecnicoService {
     private final PerfilTecnicoRepository perfilTecnicoRepository;
     private final TecnicoMapper tecnicoMapper;
     private final GeolocationClient geolocationClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -214,6 +218,11 @@ public class TecnicoServiceImpl implements TecnicoService {
         perfilTecnico.setEstadoAprobacion(EstadoAprobacionTecnico.APROBADO);
         PerfilTecnico actualizado = perfilTecnicoRepository.save(perfilTecnico);
         log.info("Técnico aprobado exitosamente para idUsuario: {}", actualizado.getIdUsuario());
+
+        eventPublisher.publishEvent(new TechnicianApprovedEvent(
+            actualizado.getIdUsuario(),
+            SecurityUtils.currentUserId()
+        ));
 
         return tecnicoMapper.toResponse(actualizado);
     }

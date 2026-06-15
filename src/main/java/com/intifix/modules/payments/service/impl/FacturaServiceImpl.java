@@ -6,6 +6,7 @@ import com.intifix.modules.payments.entity.EstadoFiscalComprobante;
 import com.intifix.modules.payments.entity.Factura;
 import com.intifix.modules.payments.entity.TipoComprobante;
 import com.intifix.modules.payments.event.FacturaEmitidaEvent;
+import com.intifix.modules.audit.event.InvoiceGeneratedEvent;
 import com.intifix.modules.payments.exception.FacturaNoEncontradaException;
 import com.intifix.modules.payments.mapper.FacturaMapper;
 import com.intifix.modules.payments.repository.FacturaRepository;
@@ -55,6 +56,13 @@ public class FacturaServiceImpl implements FacturaService {
                 facturaGuardada.getTipo(),
                 BigDecimal.ZERO,
                 facturaGuardada.getFechaEmision()
+        ));
+
+        // Auditoría desacoplada de la emisión de comprobante.
+        eventPublisher.publishEvent(new InvoiceGeneratedEvent(
+                facturaGuardada.getIdFactura(),
+                facturaGuardada.getIdPago(),
+                null
         ));
 
         log.info("Factura creada exitosamente con ID: {}", facturaGuardada.getIdFactura());
