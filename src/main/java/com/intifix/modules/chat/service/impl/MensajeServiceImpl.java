@@ -15,7 +15,6 @@ import com.intifix.modules.chat.exception.ArchivoInvalidoException;
 import com.intifix.modules.chat.exception.ConversacionBloqueadaException;
 import com.intifix.modules.chat.exception.MensajeNoEncontradoException;
 import com.intifix.modules.chat.mapper.MensajeMapper;
-import com.intifix.modules.chat.repository.ConversacionRepository;
 import com.intifix.modules.chat.repository.MensajeRepository;
 import com.intifix.modules.chat.service.ConversacionService;
 import com.intifix.modules.chat.service.MensajeService;
@@ -25,6 +24,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -38,10 +41,10 @@ import java.util.UUID;
 public class MensajeServiceImpl implements MensajeService {
 
     private final MensajeRepository mensajeRepository;
-    private final ConversacionRepository conversacionRepository;
     private final ConversacionService conversacionService;
     private final MensajeMapper mensajeMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public MensajeResponse enviar(EnviarMensajeRequest request) {
@@ -135,15 +138,35 @@ public class MensajeServiceImpl implements MensajeService {
         });
         mensajeRepository.saveAll(pendientes);
 
-        // Resetea el contador de no leídos del usuario que leyó.
-        if (userId.equals(conv.getIdCliente())) {
-            conv.setNoLeidosCliente(0);
-        } else {
-            conv.setNoLeidosTecnico(0);
-        }
-        conversacionRepository.save(conv);
+        // Resetea el contador de no leídos del usuario que leyó con un update
+        // ATÓMICO (no save de la entidad): así no choca con el @Version del
+        // documento cuando ambos participantes escriben/leen a la vez.
+        String campo = userId.equals(conv.getIdCliente()) ? "noLeidosCliente" : "noLeidosTecnico";
+        mongoTemplate.updateFirst(
+                Query.query(Criteria.where("_id").is(idConversacion)),
+                new Update().set(campo, 0),
+                ConversacionDocument.class);
 
         log.info("Usuario {} marcó {} mensajes como leídos en {}", userId, pendientes.size(), idConversacion);
+        return pendientes.size();
+    }
+
+    @Override
+    public long marcarRecibida(UUID idConversacion) {
+        UUID userId = SecurityUtils.currentUserId();
+        conversacionService.cargarParticipando(idConversacion, userId);
+
+        // Solo los que aún están en ENVIADO (no tocar los ya LEIDO/RECIBIDO).
+        List<MensajeDocument> pendientes = mensajeRepository
+                .findByIdConversacionAndIdEmisorNotAndEstado(idConversacion, userId, EstadoMensaje.ENVIADO);
+        if (pendientes.isEmpty()) {
+            return 0;
+        }
+
+        pendientes.forEach(m -> m.setEstado(EstadoMensaje.RECIBIDO));
+        mensajeRepository.saveAll(pendientes);
+        // Nota: NO se toca el documento de conversación → sin optimistic locking.
+        log.info("Usuario {} marcó {} mensajes como entregados en {}", userId, pendientes.size(), idConversacion);
         return pendientes.size();
     }
 
@@ -210,21 +233,25 @@ public class MensajeServiceImpl implements MensajeService {
     }
 
     private void actualizarConversacionTrasMensaje(ConversacionDocument conv, MensajeDocument mensaje, UUID emisor) {
-        conv.setUltimoMensaje(ConversacionDocument.UltimoMensaje.builder()
+        ConversacionDocument.UltimoMensaje ultimo = ConversacionDocument.UltimoMensaje.builder()
                 .idMensaje(mensaje.getId())
                 .idEmisor(emisor)
                 .tipo(mensaje.getTipo())
                 .preview(generarPreview(mensaje))
                 .fecha(Instant.now())
-                .build());
+                .build();
 
-        // El no leído se incrementa para el OTRO participante (el receptor).
-        if (emisor.equals(conv.getIdCliente())) {
-            conv.setNoLeidosTecnico(conv.getNoLeidosTecnico() + 1);
-        } else {
-            conv.setNoLeidosCliente(conv.getNoLeidosCliente() + 1);
-        }
-        conversacionRepository.save(conv);
+        // Update ATÓMICO: denormaliza el último mensaje, incrementa el no leído
+        // del receptor y refresca actualizadoEn (orden del inbox). Evita el
+        // save de la entidad completa y, con él, los conflictos de @Version.
+        String campoNoLeido = emisor.equals(conv.getIdCliente()) ? "noLeidosTecnico" : "noLeidosCliente";
+        mongoTemplate.updateFirst(
+                Query.query(Criteria.where("_id").is(conv.getId())),
+                new Update()
+                        .set("ultimoMensaje", ultimo)
+                        .inc(campoNoLeido, 1)
+                        .currentDate("actualizadoEn"),
+                ConversacionDocument.class);
     }
 
     private String generarPreview(MensajeDocument mensaje) {

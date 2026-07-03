@@ -1,6 +1,7 @@
 package com.intifix.modules.chat.repository;
 
 import com.intifix.modules.chat.entity.ConversacionDocument;
+import com.intifix.modules.chat.entity.TipoConversacion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -22,4 +23,6 @@ public interface ConversacionRepository extends MongoRepository<ConversacionDocu
      * {@link Pageable}). Para inbox usar sort por 'actualizadoEn' desc.
      */
     Page<ConversacionDocument> findByIdClienteOrIdTecnico(UUID idCliente, UUID idTecnico, Pageable pageable);
+
+    Optional<ConversacionDocument> findByIdClienteAndIdTecnicoAndTipo(UUID idCliente, UUID idTecnico, TipoConversacion tipo);
 }

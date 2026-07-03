@@ -3,9 +3,11 @@ package com.intifix.modules.auth.service;
 import com.intifix.modules.audit.event.UserCreatedEvent;
 import com.intifix.modules.auth.config.AuthProperties;
 import com.intifix.modules.auth.dto.*;
+import com.intifix.modules.auth.email.PasswordEmailService;
 import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.auth.entity.UsuarioAuth;
 import com.intifix.modules.auth.exception.*;
+import com.intifix.modules.auth.redis.PasswordResetTokenService;
 import com.intifix.modules.auth.redis.RefreshTokenService;
 import com.intifix.modules.auth.repository.UsuarioAuthRepository;
 import com.intifix.modules.auth.security.JwtTokenProvider;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
@@ -29,6 +33,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetTokenService passwordResetTokenService;
+    private final PasswordEmailService passwordEmailService;
     private final AuthProperties authProperties;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -66,7 +72,8 @@ public class AuthServiceImpl implements AuthService {
             usuarioGuardado.getIdUsuario(),
             usuarioGuardado.getCorreo(),
             null,
-            String.valueOf(usuarioGuardado.getRoles())
+            String.valueOf(usuarioGuardado.getRoles()),
+            request.getDni()
         ));
 
         return generateAuthResponse(usuarioGuardado);
@@ -192,11 +199,108 @@ public class AuthServiceImpl implements AuthService {
         return CurrentUserResponse.builder()
             .idUsuario(usuario.getIdUsuario())
             .correo(usuario.getCorreo())
+            .telefono(usuario.getTelefono())
             .estado(usuario.getEstado())
             .verificado(usuario.getVerificado())
             .ultimoLogin(usuario.getUltimoLogin())
             .roles(usuario.getRoles())
             .build();
+    }
+
+    @Override
+    @Transactional
+    public UserSessionResponse actualizarTelefono(UUID idUsuario, String telefono) {
+        log.info("Actualizando teléfono del usuario: {}", idUsuario);
+
+        UsuarioAuth usuario = usuarioAuthRepository.findById(idUsuario)
+            .orElseThrow(() -> UserNotFoundException.byId(idUsuario.toString()));
+
+        if (!telefono.equals(usuario.getTelefono()) && usuarioAuthRepository.existsByTelefono(telefono)) {
+            throw UserAlreadyExistsException.byTelefono(telefono);
+        }
+
+        usuario.setTelefono(telefono);
+        usuarioAuthRepository.save(usuario);
+
+        return UserSessionResponse.builder()
+            .idUsuario(usuario.getIdUsuario())
+            .correo(usuario.getCorreo())
+            .telefono(usuario.getTelefono())
+            .estado(usuario.getEstado())
+            .verificado(usuario.getVerificado())
+            .intentosFallidos(usuario.getIntentosFallidos())
+            .ultimoLogin(usuario.getUltimoLogin())
+            .fechaRegistro(usuario.getFechaRegistro())
+            .roles(usuario.getRoles())
+            .build();
+    }
+
+    private static final int DIAS_SUSPENSION = 30;
+    private static final DateTimeFormatter FMT_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    @Override
+    @Transactional
+    public void cambiarEstadoUsuario(UUID idUsuario, EstadoUsuario nuevoEstado) {
+        log.info("Admin cambiando estado de usuario {} a {}", idUsuario, nuevoEstado);
+        UsuarioAuth usuario = usuarioAuthRepository.findById(idUsuario)
+            .orElseThrow(() -> UserNotFoundException.byId(idUsuario.toString()));
+        usuario.setEstado(nuevoEstado);
+        if (nuevoEstado == EstadoUsuario.SUSPENDIDO) {
+            // Suspensión temporal: se levanta automáticamente a los 30 días.
+            usuario.setSuspensionHasta(LocalDateTime.now(ZoneId.systemDefault()).plusDays(DIAS_SUSPENSION));
+        } else {
+            // ACTIVO o BANEADO: sin fecha de expiración.
+            usuario.setSuspensionHasta(null);
+        }
+        usuarioAuthRepository.save(usuario);
+        if (nuevoEstado == EstadoUsuario.SUSPENDIDO || nuevoEstado == EstadoUsuario.BANEADO) {
+            refreshTokenService.revoke(idUsuario);
+        }
+    }
+
+    @Override
+    public void forgotPassword(String correo) {
+        // Responde siempre 200 para no revelar si el correo existe en la plataforma.
+        usuarioAuthRepository.findByCorreo(correo).ifPresent(usuario -> {
+            String token = UUID.randomUUID().toString();
+            passwordResetTokenService.saveToken(token, usuario.getIdUsuario(), 3600);
+            passwordEmailService.enviarRecuperacion(correo, token);
+            log.info("Enlace de recuperación generado para usuario: {}", usuario.getIdUsuario());
+        });
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String token, String nuevaPassword) {
+        UUID idUsuario = passwordResetTokenService.findByToken(token)
+            .orElseThrow(() -> new InvalidTokenException("El enlace de recuperación no es válido o ha expirado."));
+
+        UsuarioAuth usuario = usuarioAuthRepository.findById(idUsuario)
+            .orElseThrow(() -> UserNotFoundException.byId(idUsuario.toString()));
+
+        usuario.setPasswordHash(passwordEncoder.encode(nuevaPassword));
+        usuarioAuthRepository.save(usuario);
+        passwordResetTokenService.deleteToken(token);
+        refreshTokenService.revoke(idUsuario);
+        passwordEmailService.enviarConfirmacionCambio(usuario.getCorreo());
+        log.info("Contraseña restablecida para usuario: {}", idUsuario);
+    }
+
+    @Override
+    @Transactional
+    public void cambiarPassword(UUID idUsuario, String passwordActual, String nuevaPassword) {
+        UsuarioAuth usuario = usuarioAuthRepository.findById(idUsuario)
+            .orElseThrow(() -> UserNotFoundException.byId(idUsuario.toString()));
+
+        if (!passwordEncoder.matches(passwordActual, usuario.getPasswordHash())) {
+            throw InvalidCredentialsException.defaultMessage();
+        }
+
+        usuario.setPasswordHash(passwordEncoder.encode(nuevaPassword));
+        usuarioAuthRepository.save(usuario);
+        refreshTokenService.revoke(idUsuario);
+        passwordEmailService.enviarConfirmacionCambio(usuario.getCorreo());
+        log.info("Contraseña cambiada por el usuario: {}", idUsuario);
     }
 
     private AuthResponse generateAuthResponse(UsuarioAuth usuario) {
@@ -228,7 +332,18 @@ public class AuthServiceImpl implements AuthService {
             throw AccountBannedException.defaultMessage();
         }
         if (usuario.getEstado() == EstadoUsuario.SUSPENDIDO) {
-            throw AccountSuspendedException.defaultMessage();
+            LocalDateTime hasta = usuario.getSuspensionHasta();
+            LocalDateTime ahora = LocalDateTime.now(ZoneId.systemDefault());
+            if (hasta != null && ahora.isAfter(hasta)) {
+                // Suspensión expirada: reactivar automáticamente.
+                log.info("Auto-reactivando usuario {} — suspensión expiró el {}", usuario.getIdUsuario(), hasta.format(FMT_FECHA));
+                usuario.setEstado(EstadoUsuario.ACTIVO);
+                usuario.setSuspensionHasta(null);
+                usuarioAuthRepository.save(usuario);
+            } else {
+                String fin = (hasta != null) ? " hasta el " + hasta.format(FMT_FECHA) : "";
+                throw new AccountSuspendedException("Tu cuenta está suspendida" + fin + ". Contacta al soporte si crees que es un error.");
+            }
         }
         if (usuario.getEstado() != EstadoUsuario.ACTIVO) {
             throw new AccountSuspendedException("La cuenta no se encuentra activa.");

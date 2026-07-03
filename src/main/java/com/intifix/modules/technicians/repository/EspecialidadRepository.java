@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,5 +21,15 @@ public interface EspecialidadRepository extends JpaRepository<Especialidad, UUID
     boolean existsByNombre(String nombre);
 
     @Query("SELECT e FROM Especialidad e WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
-    java.util.List<Especialidad> buscarPorNombre(@Param("nombre") String nombre);
+    List<Especialidad> buscarPorNombre(@Param("nombre") String nombre);
+
+    /** Especialidades que tienen al menos un técnico aprobado asignado. */
+    @Query("""
+            SELECT DISTINCT e FROM Especialidad e
+            INNER JOIN TecnicoEspecialidad te ON te.idEspecialidad = e.idEspecialidad
+            INNER JOIN PerfilTecnico pt ON pt.idUsuario = te.idUsuarioTecnico
+            WHERE pt.estadoAprobacion = 'APROBADO'
+            ORDER BY e.nombre ASC
+            """)
+    List<Especialidad> findConTecnicosAprobados();
 }

@@ -93,6 +93,33 @@ public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
     }
 
     @Override
+    public Optional<UbicacionPublica> obtenerPorId(UUID idUbicacion) {
+        if (idUbicacion == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.ofNullable(jdbcTemplate.queryForObject("""
+                    SELECT id_ubicacion, departamento, provincia, distrito,
+                           direccion_texto, referencia, latitud, longitud
+                    FROM ubicaciones
+                    WHERE id_ubicacion = ?
+                    """,
+                    (rs, n) -> new UbicacionPublica(
+                            rs.getObject("id_ubicacion", UUID.class),
+                            rs.getString("departamento"),
+                            rs.getString("provincia"),
+                            rs.getString("distrito"),
+                            rs.getString("direccion_texto"),
+                            rs.getString("referencia"),
+                            rs.getBigDecimal("latitud"),
+                            rs.getBigDecimal("longitud")),
+                    idUbicacion));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Set<UUID> tecnicosConEspecialidad(UUID idEspecialidad) {
         List<UUID> ids = jdbcTemplate.query("""
                 SELECT te.id_usuario_tecnico

@@ -53,12 +53,23 @@ public interface UserGateway {
 
     /**
      * Gets the role of a user.
-     * 
+     *
      * This method retrieves the user's role to validate permissions
      * and ensure proper authorization for service operations.
-     * 
+     *
      * @param idUsuario the UUID of the user
      * @return the user's role as a string, or null if not found
      */
     String getUserRole(UUID idUsuario);
+
+    /**
+     * Gets the full name of a client (perfiles_cliente.nombres_completos).
+     *
+     * Used to enrich service listings shown to technicians with the requesting
+     * client's name, without exposing the full client profile.
+     *
+     * @param idCliente the UUID of the client
+     * @return the client's full name, or null if not found
+     */
+    String getClientName(UUID idCliente);
 }

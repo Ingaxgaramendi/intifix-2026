@@ -3,6 +3,8 @@ package com.intifix.modules.services.service;
 import com.intifix.modules.services.dto.request.AsignarTecnicoRequest;
 import com.intifix.modules.services.dto.response.AsignacionServicioResponse;
 import com.intifix.modules.services.enums.EstadoServicio;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +27,7 @@ public interface AsignacionServicioService {
 
     AsignacionServicioResponse obtenerAsignacionPorServicio(UUID idServicio);
 
-    List<AsignacionServicioResponse> obtenerAsignacionesPorTecnico(UUID idUsuarioTecnico);
+    Page<AsignacionServicioResponse> obtenerAsignacionesPorTecnico(UUID idUsuarioTecnico, Pageable pageable);
 
     List<AsignacionServicioResponse> obtenerAsignacionesPorEstado(EstadoServicio estado);
 

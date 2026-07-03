@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
-@Component
+@Component("paymentsJdbcUserGatewayAdapter")
 @RequiredArgsConstructor
 public class JdbcUserGatewayAdapter implements UserGateway {
 

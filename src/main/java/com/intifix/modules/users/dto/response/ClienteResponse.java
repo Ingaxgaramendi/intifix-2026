@@ -1,5 +1,6 @@
 package com.intifix.modules.users.dto.response;
 
+import com.intifix.modules.auth.entity.EstadoUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +18,7 @@ public class ClienteResponse {
     private String nombresCompletos;
     private String dniRuc;
     private String fotoPerfilUrl;
+    private UUID idUbicacion;
     private OffsetDateTime creadoEn;
+    private EstadoUsuario estadoUsuario;
 }

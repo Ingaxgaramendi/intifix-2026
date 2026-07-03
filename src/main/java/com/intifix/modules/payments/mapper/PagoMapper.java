@@ -9,7 +9,6 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Mapper(componentModel = "spring")
 public interface PagoMapper {
@@ -31,6 +30,9 @@ public interface PagoMapper {
     @Mapping(target = "montoNetoTecnico", ignore = true)
     @Mapping(target = "impuestoTotal", ignore = true)
     @Mapping(target = "creadoEn", ignore = true)
+    @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "transactionId", ignore = true)
+    @Mapping(target = "fechaPago", ignore = true)
     void updateEntityFromRequest(CrearPagoRequest request, @MappingTarget Pago pago);
 
     @Named("validarSumaMontos")
@@ -40,7 +42,6 @@ public interface PagoMapper {
             montoNetoTecnico == null || impuestoTotal == null) {
             return false;
         }
-        
         BigDecimal suma = comisionPlataforma.add(montoNetoTecnico).add(impuestoTotal);
         return suma.compareTo(montoTotal) == 0;
     }

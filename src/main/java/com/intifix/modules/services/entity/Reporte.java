@@ -3,6 +3,7 @@ package com.intifix.modules.services.entity;
 import com.intifix.modules.services.enums.EstadoReporte;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
@@ -40,6 +41,7 @@ import java.util.UUID;
 public class Reporte implements Persistable<UUID> {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id_reporte", nullable = false, updatable = false)
     private UUID idReporte;
 
@@ -85,7 +87,8 @@ public class Reporte implements Persistable<UUID> {
     private ZonedDateTime fechaResolucion;
 
     // La columna en BD se llama "fecha"
-    @Column(name = "fecha", nullable = false)
+    @CreationTimestamp
+    @Column(name = "fecha", nullable = false, updatable = false)
     private ZonedDateTime fechaReporte;
 
     @Column(name = "fecha_actualizacion")

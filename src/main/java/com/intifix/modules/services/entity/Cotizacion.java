@@ -3,6 +3,7 @@ package com.intifix.modules.services.entity;
 import com.intifix.modules.services.enums.EstadoCotizacion;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
@@ -38,6 +39,7 @@ import java.util.UUID;
 public class Cotizacion implements Persistable<UUID> {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id_cotizacion", nullable = false, updatable = false)
     private UUID idCotizacion;
 
@@ -63,7 +65,8 @@ public class Cotizacion implements Persistable<UUID> {
     @Column(name = "comentario", columnDefinition = "TEXT")
     private String comentario;
 
-    @Column(name = "fecha_envio", nullable = false)
+    @CreationTimestamp
+    @Column(name = "fecha_envio", nullable = false, updatable = false)
     private ZonedDateTime fechaEnvio;
 
     @Column(name = "fecha_respuesta")
@@ -71,6 +74,10 @@ public class Cotizacion implements Persistable<UUID> {
 
     @Column(name = "fecha_expiracion")
     private ZonedDateTime fechaExpiracion;
+
+    /** Fecha y hora propuesta por el técnico. Requerida para modos URGENTE y RANGO. */
+    @Column(name = "fecha_propuesta")
+    private ZonedDateTime fechaPropuesta;
 
     @Column(name = "motivo_rechazo", columnDefinition = "TEXT")
     private String motivoRechazo;

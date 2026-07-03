@@ -1,10 +1,17 @@
 package com.intifix.modules.users.service;
 
+import com.intifix.modules.auth.entity.EstadoUsuario;
+import com.intifix.modules.auth.entity.UsuarioAuth;
+import com.intifix.modules.auth.repository.UsuarioAuthRepository;
 import com.intifix.modules.users.dto.request.ActualizarClienteRequest;
 import com.intifix.modules.users.dto.request.CrearClienteRequest;
 import com.intifix.modules.users.dto.response.ClienteDetalleResponse;
+import com.intifix.modules.users.dto.response.ClientePerfilPublicoResponse;
 import com.intifix.modules.users.dto.response.ClienteResponse;
 import com.intifix.modules.users.entity.PerfilCliente;
+import com.intifix.modules.geo.dto.response.UbicacionPublicaResponse;
+import com.intifix.modules.geo.service.UbicacionService;
+import com.intifix.modules.services.repository.ServicioRepository;
 import com.intifix.modules.users.exception.ClienteNoEncontradoException;
 import com.intifix.modules.users.exception.ClienteYaExisteException;
 import com.intifix.modules.users.exception.DniDuplicadoException;
@@ -21,7 +28,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +42,9 @@ public class ClienteServiceImpl implements ClienteService {
     private final ClienteMapper clienteMapper;
     private final UserGateway userGateway;
     private final ApplicationEventPublisher eventPublisher;
+    private final UbicacionService ubicacionService;
+    private final ServicioRepository servicioRepository;
+    private final UsuarioAuthRepository usuarioAuthRepository;
 
     @Override
     @Transactional
@@ -60,7 +73,9 @@ public class ClienteServiceImpl implements ClienteService {
     @Override
     @Transactional(readOnly = true)
     public ClienteResponse obtenerClientePorId(UUID idUsuario) {
-        return clienteMapper.toResponse(obtenerPerfil(idUsuario));
+        ClienteResponse response = clienteMapper.toResponse(obtenerPerfil(idUsuario));
+        usuarioAuthRepository.obtenerEstadoPorId(idUsuario).ifPresent(response::setEstadoUsuario);
+        return response;
     }
 
     @Override
@@ -100,6 +115,48 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
+    public ClienteResponse asignarUbicacion(UUID idUsuario, UUID idUbicacion) {
+        log.info("Asignando ubicación {} al cliente {}", idUbicacion, idUsuario);
+
+        PerfilCliente perfilCliente = obtenerPerfil(idUsuario);
+        // Valida que la ubicación exista (lanza 404 si no); reusa el módulo geo.
+        ubicacionService.obtenerPorId(idUbicacion);
+
+        perfilCliente.setIdUbicacion(idUbicacion);
+        PerfilCliente actualizado = perfilClienteRepository.save(perfilCliente);
+        log.info("Ubicación asignada al cliente {}: {}", idUsuario, idUbicacion);
+
+        return clienteMapper.toResponse(actualizado);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClientePerfilPublicoResponse obtenerPerfilPublico(UUID idUsuario) {
+        PerfilCliente perfil = obtenerPerfil(idUsuario);
+
+        ClientePerfilPublicoResponse.ClientePerfilPublicoResponseBuilder builder =
+            ClientePerfilPublicoResponse.builder()
+                .idUsuario(perfil.getIdUsuario())
+                .nombresCompletos(perfil.getNombresCompletos())
+                .fotoPerfilUrl(perfil.getFotoPerfilUrl())
+                .creadoEn(perfil.getCreadoEn())
+                .totalServicios(servicioRepository.countByIdCliente(idUsuario))
+                .tieneUbicacion(perfil.getIdUbicacion() != null);
+
+        // Solo distrito/zona y coords aproximadas: nunca la dirección exacta.
+        if (perfil.getIdUbicacion() != null) {
+            UbicacionPublicaResponse ubic = ubicacionService.obtenerPorId(perfil.getIdUbicacion());
+            builder.distrito(ubic.getDistrito())
+                   .provincia(ubic.getProvincia())
+                   .latitud(ubic.getLatitud())
+                   .longitud(ubic.getLongitud());
+        }
+
+        return builder.build();
+    }
+
+    @Override
+    @Transactional
     public void eliminarCliente(UUID idUsuario) {
         log.info("Eliminando perfil de cliente para idUsuario: {}", idUsuario);
 
@@ -112,13 +169,24 @@ public class ClienteServiceImpl implements ClienteService {
     @Override
     @Transactional(readOnly = true)
     public Page<ClienteResponse> obtenerTodosClientes(Pageable pageable) {
-        return perfilClienteRepository.findAll(pageable).map(clienteMapper::toResponse);
+        return enriquecerConEstado(perfilClienteRepository.findAll(pageable));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ClienteResponse> buscarClientesPorNombre(String nombre, Pageable pageable) {
-        return perfilClienteRepository.buscarPorNombre(nombre, pageable).map(clienteMapper::toResponse);
+        return enriquecerConEstado(perfilClienteRepository.buscarPorNombre(nombre, pageable));
+    }
+
+    private Page<ClienteResponse> enriquecerConEstado(Page<PerfilCliente> page) {
+        List<UUID> ids = page.getContent().stream().map(PerfilCliente::getIdUsuario).toList();
+        Map<UUID, EstadoUsuario> estadoMap = usuarioAuthRepository.findAllById(ids).stream()
+            .collect(Collectors.toMap(UsuarioAuth::getIdUsuario, UsuarioAuth::getEstado));
+        return page.map(c -> {
+            ClienteResponse r = clienteMapper.toResponse(c);
+            r.setEstadoUsuario(estadoMap.getOrDefault(c.getIdUsuario(), EstadoUsuario.ACTIVO));
+            return r;
+        });
     }
 
     @Override

@@ -38,9 +38,24 @@ public interface ServicioService {
     Page<ServicioResponse> obtenerServiciosPorEstado(EstadoServicio estado, Pageable pageable);
 
     /**
-     * Marketplace: servicios abiertos (PENDIENTE/COTIZANDO) visibles para técnicos.
+     * Marketplace: servicios PUBLICOS abiertos (PENDIENTE/COTIZANDO) visibles para técnicos.
      */
     Page<ServicioResponse> obtenerServiciosDisponibles(Pageable pageable);
+
+    /**
+     * Solicitudes directas enviadas al técnico autenticado (estado PENDIENTE/COTIZANDO).
+     */
+    Page<ServicioResponse> obtenerSolicitudesDirectas(Pageable pageable);
+
+    /**
+     * El técnico autenticado acepta la solicitud directa: se crea cotizacion + asignación automática.
+     */
+    ServicioResponse aceptarSolicitudDirecta(UUID idServicio);
+
+    /**
+     * El técnico autenticado rechaza la solicitud directa: el servicio pasa a ser PUBLICO.
+     */
+    ServicioResponse rechazarSolicitudDirecta(UUID idServicio);
 
     Page<ServicioResponse> buscarServiciosPorTitulo(String titulo, Pageable pageable);
 

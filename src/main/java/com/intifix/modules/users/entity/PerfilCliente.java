@@ -39,6 +39,10 @@ public class PerfilCliente implements Persistable<UUID> {
     @Column(name = "foto_perfil_url", columnDefinition = "TEXT")
     private String fotoPerfilUrl;
 
+    /** Ubicación base/guardada del cliente (FK a ubicaciones). Opcional. */
+    @Column(name = "id_ubicacion")
+    private UUID idUbicacion;
+
     /**
      * Generado por PostgreSQL ({@code DEFAULT CURRENT_TIMESTAMP}).
      * Hibernate excluye la columna del INSERT y la relee vía RETURNING.

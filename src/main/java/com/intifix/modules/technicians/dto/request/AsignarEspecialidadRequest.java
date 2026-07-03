@@ -1,6 +1,5 @@
 package com.intifix.modules.technicians.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,9 +14,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class AsignarEspecialidadRequest {
 
-    @NotBlank(message = "El idUsuarioTecnico es obligatorio")
+    @NotNull(message = "El idUsuarioTecnico es obligatorio")
     private UUID idUsuarioTecnico;
 
     @NotNull(message = "El idEspecialidad es obligatorio")
     private UUID idEspecialidad;
+
+    /** Certificado que acredita la especialidad (URL en Cloudinary). Opcional al asignar. */
+    private String certificadoUrl;
 }

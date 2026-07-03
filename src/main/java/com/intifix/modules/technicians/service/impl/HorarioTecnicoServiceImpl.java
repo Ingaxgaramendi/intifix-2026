@@ -38,6 +38,10 @@ public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
             throw TecnicoNoEncontradoException.byIdUsuario(request.getIdUsuarioTecnico());
         }
 
+        if (!request.getHoraFin().isAfter(request.getHoraInicio())) {
+            throw new HorarioDuplicadoException("La hora de fin debe ser posterior a la hora de inicio.");
+        }
+
         validarHorarioSolapado(
             request.getIdUsuarioTecnico(),
             request.getDiaSemana(),
@@ -46,6 +50,7 @@ public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
         );
 
         HorarioTecnico horarioTecnico = horarioMapper.toEntity(request);
+        horarioTecnico.setActivo(Boolean.TRUE);
         HorarioTecnico guardado = horarioTecnicoRepository.save(horarioTecnico);
         log.info("Horario creado exitosamente con id: {}", guardado.getIdHorario());
 

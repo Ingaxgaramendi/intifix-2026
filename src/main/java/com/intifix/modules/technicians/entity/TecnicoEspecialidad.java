@@ -15,8 +15,8 @@ import java.util.UUID;
 
 /**
  * Tabla de unión técnico-especialidad. PK compuesta: un técnico puede tener
- * varias especialidades y una especialidad varios técnicos. Sin columnas
- * adicionales — espejo exacto de la tabla {@code tecnico_especialidad}.
+ * varias especialidades y una especialidad varios técnicos. Cada asignación
+ * lleva su propio certificado (URL en Cloudinary) que acredita ese oficio.
  */
 @Entity
 @Table(name = "tecnico_especialidad")
@@ -35,4 +35,7 @@ public class TecnicoEspecialidad {
     @Id
     @Column(name = "id_especialidad", nullable = false, updatable = false)
     private UUID idEspecialidad;
+
+    @Column(name = "certificado_url", columnDefinition = "TEXT")
+    private String certificadoUrl;
 }

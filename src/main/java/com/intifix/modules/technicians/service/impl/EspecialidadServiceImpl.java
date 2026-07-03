@@ -4,6 +4,7 @@ import com.intifix.modules.technicians.dto.request.ActualizarEspecialidadRequest
 import com.intifix.modules.technicians.dto.request.AsignarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearEspecialidadRequest;
 import com.intifix.modules.technicians.dto.response.EspecialidadResponse;
+import com.intifix.modules.technicians.dto.response.EspecialidadTecnicoResponse;
 import com.intifix.modules.technicians.entity.Especialidad;
 import com.intifix.modules.technicians.entity.TecnicoEspecialidad;
 import com.intifix.modules.technicians.exception.EspecialidadNoEncontradaException;
@@ -155,6 +156,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
         TecnicoEspecialidad tecnicoEspecialidad = TecnicoEspecialidad.builder()
             .idUsuarioTecnico(request.getIdUsuarioTecnico())
             .idEspecialidad(request.getIdEspecialidad())
+            .certificadoUrl(request.getCertificadoUrl())
             .build();
 
         tecnicoEspecialidadRepository.save(tecnicoEspecialidad);
@@ -182,7 +184,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EspecialidadResponse> listarEspecialidadesPorTecnico(UUID idUsuarioTecnico) {
+    public List<EspecialidadTecnicoResponse> listarEspecialidadesPorTecnico(UUID idUsuarioTecnico) {
         log.debug("Listando especialidades para técnico idUsuario: {}", idUsuarioTecnico);
 
         if (!perfilTecnicoRepository.existsByIdUsuario(idUsuarioTecnico)) {
@@ -190,13 +192,34 @@ public class EspecialidadServiceImpl implements EspecialidadService {
             throw TecnicoNoEncontradoException.byIdUsuario(idUsuarioTecnico);
         }
 
-        List<UUID> especialidadIds = tecnicoEspecialidadRepository.findEspecialidadIdsByTecnico(idUsuarioTecnico);
-        List<Especialidad> especialidades = especialidadIds.stream()
-            .map(id -> especialidadRepository.findByIdEspecialidad(id)
-                .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(id)))
+        // Cada asignación trae su certificado; lo combinamos con el catálogo
+        // (nombre/descripción) de la especialidad.
+        return tecnicoEspecialidadRepository.findByIdUsuarioTecnico(idUsuarioTecnico).stream()
+            .map(te -> {
+                Especialidad esp = especialidadRepository.findByIdEspecialidad(te.getIdEspecialidad())
+                    .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(te.getIdEspecialidad()));
+                return EspecialidadTecnicoResponse.builder()
+                    .idEspecialidad(esp.getIdEspecialidad())
+                    .nombre(esp.getNombre())
+                    .descripcion(esp.getDescripcion())
+                    .certificadoUrl(te.getCertificadoUrl())
+                    .build();
+            })
             .toList();
+    }
 
-        return especialidadMapper.toResponseList(especialidades);
+    @Override
+    @Transactional
+    public void actualizarCertificadoEspecialidad(UUID idUsuarioTecnico, UUID idEspecialidad, String certificadoUrl) {
+        log.info("Actualizando certificado de especialidad {} para técnico {}", idEspecialidad, idUsuarioTecnico);
+
+        TecnicoEspecialidad asignacion = tecnicoEspecialidadRepository
+            .findByIdUsuarioTecnicoAndIdEspecialidad(idUsuarioTecnico, idEspecialidad)
+            .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(idEspecialidad));
+
+        asignacion.setCertificadoUrl(certificadoUrl);
+        tecnicoEspecialidadRepository.save(asignacion);
+        log.info("Certificado de especialidad actualizado para técnico {}", idUsuarioTecnico);
     }
 
     @Override

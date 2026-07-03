@@ -3,6 +3,7 @@ package com.intifix.modules.users.controller;
 import com.intifix.modules.users.dto.request.ActualizarClienteRequest;
 import com.intifix.modules.users.dto.request.CrearClienteRequest;
 import com.intifix.modules.users.dto.response.ClienteDetalleResponse;
+import com.intifix.modules.users.dto.response.ClientePerfilPublicoResponse;
 import com.intifix.modules.users.dto.response.ClienteResponse;
 import com.intifix.modules.users.service.ClienteService;
 import com.intifix.shared.api.ApiResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -115,6 +117,46 @@ public class ClienteController {
             @Valid @RequestBody ActualizarClienteRequest request) {
         ClienteResponse response = clienteService.actualizarCliente(idUsuario, request);
         return ResponseEntity.ok(ApiResponse.success("Perfil de cliente actualizado exitosamente.", response));
+    }
+
+    @PutMapping("/{idUsuario}/location")
+    @PreAuthorize("hasRole('ADMIN') or #idUsuario == principal.id")
+    @Operation(
+        summary = "Fijar/actualizar la ubicación del cliente",
+        description = "Asocia una ubicación (de la tabla ubicaciones) como ubicación base guardada del cliente. "
+            + "Se usa para ordenar técnicos por cercanía y para el perfil público. Solo el propietario o un administrador."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Ubicación asignada"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado", content = @Content),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Sin permisos", content = @Content),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Cliente o ubicación no encontrados", content = @Content),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno", content = @Content)
+    })
+    public ResponseEntity<ApiResponse<ClienteResponse>> asignarUbicacion(
+            @Parameter(description = "Identificador del usuario propietario del perfil") @PathVariable UUID idUsuario,
+            @Parameter(description = "Identificador de la ubicación a asociar") @RequestParam UUID idUbicacion) {
+        ClienteResponse response = clienteService.asignarUbicacion(idUsuario, idUbicacion);
+        return ResponseEntity.ok(ApiResponse.success("Ubicación del cliente actualizada exitosamente.", response));
+    }
+
+    @GetMapping("/{idUsuario}/perfil-publico")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+        summary = "Perfil público del cliente",
+        description = "Vista de confianza que un técnico puede consultar: nombre, foto, antigüedad, zona aproximada "
+            + "(distrito) y nº de servicios publicados. No expone DNI/RUC ni la dirección exacta."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Perfil público encontrado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado", content = @Content),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Cliente no encontrado", content = @Content),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno", content = @Content)
+    })
+    public ResponseEntity<ApiResponse<ClientePerfilPublicoResponse>> obtenerPerfilPublico(
+            @Parameter(description = "Identificador del usuario propietario del perfil") @PathVariable UUID idUsuario) {
+        ClientePerfilPublicoResponse response = clienteService.obtenerPerfilPublico(idUsuario);
+        return ResponseEntity.ok(ApiResponse.success("Perfil público del cliente encontrado.", response));
     }
 
     @DeleteMapping("/{idUsuario}")

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * @author INTIFIX Architecture Team
  * @version 2.0
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.intifix.modules.services")
 @Slf4j
 public class ServiceExceptionHandler {
 

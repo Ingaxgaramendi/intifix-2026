@@ -54,7 +54,7 @@ public interface CalificacionRepository extends JpaRepository<Calificacion, UUID
     @Query("SELECT COUNT(c) FROM Calificacion c WHERE c.idCliente = :idCliente")
     long countByIdCliente(@Param("idCliente") UUID idCliente);
 
-    @Query("SELECT (SELECT COUNT(c) FROM Calificacion c WHERE c.idUsuarioTecnico = :idUsuarioTecnico AND c.recomendaria = true) * 100.0 / (SELECT COUNT(c) FROM Calificacion c WHERE c.idUsuarioTecnico = :idUsuarioTecnico)")
+    @Query("SELECT (SELECT COUNT(c) FROM Calificacion c WHERE c.idUsuarioTecnico = :idUsuarioTecnico AND c.recomendaria = true) * 100.0 / NULLIF((SELECT COUNT(c) FROM Calificacion c WHERE c.idUsuarioTecnico = :idUsuarioTecnico), 0)")
     Double porcentajeRecomendacionByIdUsuarioTecnico(@Param("idUsuarioTecnico") UUID idUsuarioTecnico);
 
     @Query("SELECT c FROM Calificacion c WHERE c.idUsuarioTecnico = :idUsuarioTecnico ORDER BY c.fechaCalificacion DESC")

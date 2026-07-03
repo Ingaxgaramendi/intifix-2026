@@ -8,12 +8,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface TecnicoEspecialidadRepository extends JpaRepository<TecnicoEspecialidad, TecnicoEspecialidadId> {
 
     List<TecnicoEspecialidad> findByIdUsuarioTecnico(UUID idUsuarioTecnico);
+
+    Optional<TecnicoEspecialidad> findByIdUsuarioTecnicoAndIdEspecialidad(UUID idUsuarioTecnico, UUID idEspecialidad);
 
     List<TecnicoEspecialidad> findByIdEspecialidad(UUID idEspecialidad);
 

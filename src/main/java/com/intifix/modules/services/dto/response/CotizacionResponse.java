@@ -29,6 +29,7 @@ public class CotizacionResponse {
     private String tiempoEstimado;
     private EstadoCotizacion estado;
     private String comentario;
+    private ZonedDateTime fechaPropuesta;
     private ZonedDateTime fechaEnvio;
     private ZonedDateTime fechaRespuesta;
     private ZonedDateTime fechaExpiracion;

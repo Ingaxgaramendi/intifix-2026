@@ -2,8 +2,18 @@ spring:
   application:
     name: intifix-backend
 
+  # El proyecto registra varios beans por duplicado (auditoría JPA/Mongo, etc.).
+  # Permitir el override para que el contexto arranque.
+  main:
+    allow-bean-definition-overriding: true
+
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
+
   datasource:
-    url: jdbc:postgresql://${DB_POSTGRES_HOST:localhost}:${DB_POSTGRES_PORT:5432}/${DB_POSTGRES_NAME:intifix_db}
+    url: jdbc:postgresql://${DB_POSTGRES_HOST:localhost}:${DB_POSTGRES_PORT:5432}/${DB_POSTGRES_NAME:intifix_db}?sslmode=${DB_POSTGRES_SSLMODE:require}
     username: ${DB_POSTGRES_USER:postgres}
     password: ${DB_POSTGRES_PASSWORD:root}
     driver-class-name: org.postgresql.Driver
@@ -18,20 +28,24 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      # validate: Flyway gestiona el esquema; Hibernate solo lo verifica (producción-seguro).
+      # Usar 'update' únicamente en desarrollo local (sobreescribe con application-local.yml).
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         jdbc:
-          time_zone: UTC
+          time_zone: America/Lima
 
   data:
     mongodb:
-      uri: mongodb+srv://${DB_MONGO_USER:admin}:${DB_MONGO_PASSWORD:secret}@${DB_MONGO_HOST:cluster0.xxxx.mongodb.net}/${DB_MONGO_NAME:intifix_nosql}?retryWrites=true&w=majority
-      # Crea los @Indexed/@CompoundIndex declarados en las entidades al arrancar
-      # (Spring Data Mongo lo trae desactivado por defecto desde 3.0).
-      auto-index-creation: true
+      # Si MONGO_URI está definido (p.ej. Mongo local), se usa tal cual.
+      # Si no, se arma la URI de Atlas a partir de las variables DB_MONGO_*.
+      uri: ${MONGO_URI:mongodb+srv://${DB_MONGO_USER:admin}:${DB_MONGO_PASSWORD:secret}@${DB_MONGO_HOST:cluster0.xxxx.mongodb.net}/${DB_MONGO_NAME:intifix_nosql}?retryWrites=true&w=majority}
+      # Deshabilitado: los índices se crean/migran via MongoIndexMigrationRunner
+      # para poder hacer drops+recreación cuando cambian las opciones (sparse, etc.)
+      auto-index-creation: false
 
     redis:
       host: ${REDIS_HOST}
@@ -39,9 +53,68 @@ spring:
       username: ${REDIS_USERNAME}
       password: ${REDIS_PASSWORD}
       ssl:
-        enabled: true
+        # true para Redis en la nube (Upstash). false para el contenedor local.
+        enabled: ${REDIS_SSL:true}
+
+  # ===========================================================================
+  # Correo (Gmail SMTP). Las credenciales se inyectan desde el .env / entorno.
+  # MAIL_USERNAME = tu Gmail, MAIL_PASSWORD = "contraseña de aplicación" (no la
+  # clave normal). Si MAIL_USERNAME queda vacío, el envío se omite (modo no-op).
+  # ===========================================================================
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  # ===========================================================================
+  # Spring AI - OpenAI GPT-4o. La API key se inyecta desde el .env / entorno.
+  # ===========================================================================
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.3
+
+intifix:
+  cors:
+    # En producción, inyectar INTIFIX_CORS_ALLOWED_ORIGINS como lista separada por coma:
+    #   INTIFIX_CORS_ALLOWED_ORIGINS=https://intifix.vercel.app,https://intifix-admin.vercel.app
+    # En local, el application-local.yml sobreescribe con localhost.
+    allowed-origins:
+      - ${CORS_ORIGIN_1:http://localhost:5173}
+      - ${CORS_ORIGIN_2:http://localhost:5174}
+      - ${CORS_ORIGIN_3:http://localhost:3000}
 
 app:
+  # Carpeta local donde se guardan las imágenes subidas (servidas en /uploads/**).
+  # Cuando exista almacenamiento en la nube, se reemplaza por su config.
+  uploads:
+    dir: ${UPLOADS_DIR:uploads}
+
+  # Cloudinary (nube). Si cloud-name está vacío, se usa almacenamiento local.
+  cloudinary:
+    cloud-name: ${cloudinary_cloud_name:}
+    api-key: ${cloudinary_api_key:}
+    api-secret: ${cloudinary_api_secret:}
+
+  # Remitente de los correos transaccionales (comprobantes, etc.).
+  mail:
+    from: ${MAIL_FROM:${MAIL_USERNAME:no-reply@intifix.com}}
+    from-name: ${MAIL_FROM_NAME:INTIFIX}
+
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration: 900
@@ -52,6 +125,19 @@ app:
 
 server:
   port: 8080
-
   error:
-    include-message: always
+    # 'never' en producción para no filtrar detalles internos.
+    # El perfil local lo sobreescribe a 'always' para depuración.
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Solo health expuesto públicamente. El resto requiere autenticación de actuator.
+        include: health
+  endpoint:
+    health:
+      show-details: never

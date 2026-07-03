@@ -1,5 +1,7 @@
 package com.intifix.modules.technicians.controller;
 
+import com.intifix.modules.auth.entity.EstadoUsuario;
+import com.intifix.modules.auth.service.AuthService;
 import com.intifix.modules.technicians.dto.request.ActualizarTecnicoRequest;
 import com.intifix.modules.technicians.dto.request.CambiarDisponibilidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearTecnicoRequest;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -28,6 +31,7 @@ import java.util.UUID;
 public class TecnicoController {
 
     private final TecnicoService tecnicoService;
+    private final AuthService authService;
 
     @PostMapping
     @Operation(summary = "Crear perfil técnico", description = "Crea un nuevo perfil técnico en el sistema")
@@ -121,6 +125,22 @@ public class TecnicoController {
     public ResponseEntity<ApiResponse<TecnicoResponse>> rechazarTecnico(@PathVariable UUID idUsuario) {
         TecnicoResponse response = tecnicoService.rechazarTecnico(idUsuario);
         return ResponseEntity.ok(ApiResponse.success("Técnico rechazado exitosamente.", response));
+    }
+
+    @PatchMapping("/{idUsuario}/suspender")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Suspender técnico", description = "Suspende la cuenta de un técnico (ADMIN)")
+    public ResponseEntity<ApiResponse<Void>> suspenderTecnico(@PathVariable UUID idUsuario) {
+        authService.cambiarEstadoUsuario(idUsuario, EstadoUsuario.SUSPENDIDO);
+        return ResponseEntity.ok(ApiResponse.success("Técnico suspendido exitosamente.", null));
+    }
+
+    @PatchMapping("/{idUsuario}/reactivar")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reactivar técnico", description = "Reactiva la cuenta de un técnico suspendido (ADMIN)")
+    public ResponseEntity<ApiResponse<Void>> reactivarTecnico(@PathVariable UUID idUsuario) {
+        authService.cambiarEstadoUsuario(idUsuario, EstadoUsuario.ACTIVO);
+        return ResponseEntity.ok(ApiResponse.success("Técnico reactivado exitosamente.", null));
     }
 
     @PatchMapping("/{idUsuario}/disponibilidad")

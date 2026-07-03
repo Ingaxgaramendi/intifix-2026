@@ -1,7 +1,8 @@
 package com.intifix.modules.services.dto.request;
 
 import com.intifix.modules.services.enums.ModalidadServicio;
-import com.intifix.modules.services.enums.PrioridadServicio;
+import com.intifix.modules.services.enums.TipoFecha;
+import com.intifix.modules.services.enums.TipoSolicitud;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -26,8 +28,11 @@ public class CrearServicioRequest {
 
     // idCliente removed - obtained from SecurityContextHolder to prevent IDOR
 
-    @NotNull(message = "La ubicación es obligatoria")
+    // Requerida solo para EN_CASA_CLIENTE (se valida en el servicio según modalidad).
     private UUID idUbicacion;
+
+    @NotNull(message = "La especialidad es obligatoria")
+    private UUID idEspecialidad;
 
     @NotBlank(message = "El título es obligatorio")
     @Size(min = 5, max = 255, message = "El título debe tener entre 5 y 255 caracteres")
@@ -40,14 +45,29 @@ public class CrearServicioRequest {
     @NotNull(message = "La modalidad es obligatoria")
     private ModalidadServicio modalidad;
 
-    @NotNull(message = "La prioridad es obligatoria")
-    private PrioridadServicio prioridad;
-
     @DecimalMin(value = "0.01", message = "El presupuesto máximo debe ser mayor a 0")
     @DecimalMax(value = "999999.99", message = "El presupuesto máximo no puede exceder 999999.99")
     private BigDecimal presupuestoMaximo;
 
-    @NotNull(message = "La fecha programada es obligatoria")
-    @Future(message = "La fecha programada debe ser futura")
+    /** Scheduling mode; defaults to EXACTA if null. */
+    private TipoFecha tipoFecha;
+
+    /** Required for EXACTA mode. Validated in service layer. */
     private ZonedDateTime fechaProgramada;
+
+    /** Required for RANGO mode: start of the window. */
+    private ZonedDateTime fechaInicioRango;
+
+    /** Required for RANGO mode: end of the window (max 5 days after fechaInicioRango). */
+    private ZonedDateTime fechaFinRango;
+
+    @NotEmpty(message = "Agrega al menos una foto")
+    @Size(max = 5, message = "Puedes agregar como máximo 5 fotos")
+    private List<@NotBlank(message = "URL de foto inválida") String> fotos;
+
+    /** PUBLICA (defecto) o DIRECTA. Cuando es DIRECTA, idTecnicoDirecto es obligatorio. */
+    private TipoSolicitud tipoSolicitud;
+
+    /** Solo para DIRECTA: UUID del técnico elegido por el cliente. */
+    private UUID idTecnicoDirecto;
 }

@@ -1,5 +1,8 @@
 package com.intifix.modules.technicians.service.impl;
 
+import com.intifix.modules.auth.entity.EstadoUsuario;
+import com.intifix.modules.auth.entity.UsuarioAuth;
+import com.intifix.modules.auth.repository.UsuarioAuthRepository;
 import com.intifix.modules.technicians.dto.request.ActualizarTecnicoRequest;
 import com.intifix.modules.technicians.dto.request.CambiarDisponibilidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearTecnicoRequest;
@@ -9,7 +12,6 @@ import com.intifix.modules.technicians.entity.PerfilTecnico;
 import com.intifix.modules.technicians.enums.DisponibilidadTecnico;
 import com.intifix.modules.technicians.enums.EstadoAprobacionTecnico;
 import com.intifix.modules.technicians.exception.DniDuplicadoException;
-import com.intifix.modules.technicians.exception.TecnicoNoAprobadoException;
 import com.intifix.modules.technicians.exception.TecnicoNoEncontradoException;
 import com.intifix.modules.technicians.exception.UbicacionInvalidaException;
 import com.intifix.modules.technicians.exception.UbicacionNoEncontradaException;
@@ -28,7 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +43,7 @@ public class TecnicoServiceImpl implements TecnicoService {
     private final TecnicoMapper tecnicoMapper;
     private final GeolocationClient geolocationClient;
     private final ApplicationEventPublisher eventPublisher;
+    private final UsuarioAuthRepository usuarioAuthRepository;
 
     @Override
     @Transactional
@@ -86,7 +91,9 @@ public class TecnicoServiceImpl implements TecnicoService {
                 return TecnicoNoEncontradoException.byIdUsuario(idUsuario);
             });
 
-        return tecnicoMapper.toResponse(perfilTecnico);
+        TecnicoResponse response = tecnicoMapper.toResponse(perfilTecnico);
+        usuarioAuthRepository.obtenerEstadoPorId(idUsuario).ifPresent(response::setEstadoUsuario);
+        return response;
     }
 
     @Override
@@ -100,7 +107,9 @@ public class TecnicoServiceImpl implements TecnicoService {
                 return TecnicoNoEncontradoException.byIdUsuario(idUsuario);
             });
 
-        return tecnicoMapper.toDetalleResponse(perfilTecnico);
+        TecnicoDetalleResponse response = tecnicoMapper.toDetalleResponse(perfilTecnico);
+        usuarioAuthRepository.obtenerEstadoPorId(idUsuario).ifPresent(response::setEstadoUsuario);
+        return response;
     }
 
     @Override
@@ -164,10 +173,8 @@ public class TecnicoServiceImpl implements TecnicoService {
     @Transactional(readOnly = true)
     public Page<TecnicoResponse> obtenerTodosTecnicos(Pageable pageable) {
         log.debug("Obteniendo todos los técnicos paginados");
-
         Page<PerfilTecnico> tecnicos = perfilTecnicoRepository.findAll(pageable);
-
-        return tecnicos.map(tecnicoMapper::toResponse);
+        return enriquecerConEstado(tecnicos);
     }
 
     @Override
@@ -256,11 +263,9 @@ public class TecnicoServiceImpl implements TecnicoService {
                 return TecnicoNoEncontradoException.byIdUsuario(idUsuario);
             });
 
-        if (perfilTecnico.getEstadoAprobacion() != EstadoAprobacionTecnico.APROBADO) {
-            log.warn("Intento de cambiar disponibilidad para técnico no aprobado: {}", idUsuario);
-            throw TecnicoNoAprobadoException.byIdUsuario(idUsuario);
-        }
-
+        // El técnico puede marcarse disponible/ocupado aunque su cuenta esté
+        // PENDIENTE: igualmente no aparece en búsquedas hasta ser APROBADO
+        // (el buscador filtra por aprobado + disponible).
         perfilTecnico.setDisponibilidad(request.getDisponibilidad());
         PerfilTecnico actualizado = perfilTecnicoRepository.save(perfilTecnico);
         log.info("Disponibilidad cambiada exitosamente para idUsuario: {}", actualizado.getIdUsuario());
@@ -291,10 +296,19 @@ public class TecnicoServiceImpl implements TecnicoService {
     @Transactional(readOnly = true)
     public Page<TecnicoResponse> buscarTecnicosPorEstado(EstadoAprobacionTecnico estado, Pageable pageable) {
         log.debug("Buscando técnicos por estado: {}", estado);
-
         Page<PerfilTecnico> tecnicos = perfilTecnicoRepository.findByEstadoAprobacion(estado, pageable);
+        return enriquecerConEstado(tecnicos);
+    }
 
-        return tecnicos.map(tecnicoMapper::toResponse);
+    private Page<TecnicoResponse> enriquecerConEstado(Page<PerfilTecnico> page) {
+        List<UUID> ids = page.getContent().stream().map(PerfilTecnico::getIdUsuario).toList();
+        Map<UUID, EstadoUsuario> estadoMap = usuarioAuthRepository.findAllById(ids).stream()
+            .collect(Collectors.toMap(UsuarioAuth::getIdUsuario, UsuarioAuth::getEstado));
+        return page.map(t -> {
+            TecnicoResponse r = tecnicoMapper.toResponse(t);
+            r.setEstadoUsuario(estadoMap.getOrDefault(t.getIdUsuario(), EstadoUsuario.ACTIVO));
+            return r;
+        });
     }
 
     @Override

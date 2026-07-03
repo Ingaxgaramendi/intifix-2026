@@ -15,12 +15,12 @@ import java.util.UUID;
  * cliente HTTP (Feign/RestClient) contra intifix-auth-service o por una
  * réplica local alimentada por eventos {@code UsuarioCreado}.</p>
  */
-@Component
+@Component("usersJdbcUserGatewayAdapter")
 @RequiredArgsConstructor
 class JdbcUserGatewayAdapter implements UserGateway {
 
     private static final String EXISTS_SQL =
-        "SELECT EXISTS(SELECT 1 FROM usuarios WHERE id_usuario = ? AND deleted_at IS NULL)";
+        "SELECT EXISTS(SELECT 1 FROM usuarios WHERE id_usuario = ?)";
 
     private final JdbcTemplate jdbcTemplate;
 

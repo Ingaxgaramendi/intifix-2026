@@ -22,5 +22,7 @@ public interface FacturaMapper {
     @Mapping(target = "idFactura", ignore = true)
     @Mapping(target = "idPago", ignore = true)
     @Mapping(target = "fechaEmision", ignore = true)
+    @Mapping(target = "estadoFiscal", ignore = true)
+    @Mapping(target = "urlPdf", ignore = true)
     void updateEntityFromRequest(CrearFacturaRequest request, @MappingTarget Factura factura);
 }

@@ -1,9 +1,11 @@
 package com.intifix.modules.technicians.controller;
 
+import com.intifix.modules.technicians.dto.request.ActualizarCertificadoEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.ActualizarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.AsignarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearEspecialidadRequest;
 import com.intifix.modules.technicians.dto.response.EspecialidadResponse;
+import com.intifix.modules.technicians.dto.response.EspecialidadTecnicoResponse;
 import com.intifix.modules.technicians.service.EspecialidadService;
 import com.intifix.shared.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -88,10 +90,20 @@ public class EspecialidadController {
     }
 
     @GetMapping("/tecnico/{idUsuarioTecnico}")
-    @Operation(summary = "Listar especialidades por técnico", description = "Obtiene todas las especialidades de un técnico específico")
-    public ResponseEntity<ApiResponse<List<EspecialidadResponse>>> listarEspecialidadesPorTecnico(@PathVariable UUID idUsuarioTecnico) {
-        List<EspecialidadResponse> response = especialidadService.listarEspecialidadesPorTecnico(idUsuarioTecnico);
+    @Operation(summary = "Listar especialidades por técnico", description = "Obtiene todas las especialidades de un técnico (con su certificado)")
+    public ResponseEntity<ApiResponse<List<EspecialidadTecnicoResponse>>> listarEspecialidadesPorTecnico(@PathVariable UUID idUsuarioTecnico) {
+        List<EspecialidadTecnicoResponse> response = especialidadService.listarEspecialidadesPorTecnico(idUsuarioTecnico);
         return ResponseEntity.ok(ApiResponse.success("Especialidades del técnico obtenidas exitosamente.", response));
+    }
+
+    @PatchMapping("/tecnico/{idUsuarioTecnico}/especialidad/{idEspecialidad}/certificado")
+    @Operation(summary = "Actualizar certificado de especialidad", description = "Sube/actualiza el certificado que acredita una especialidad del técnico")
+    public ResponseEntity<ApiResponse<Void>> actualizarCertificadoEspecialidad(
+            @PathVariable UUID idUsuarioTecnico,
+            @PathVariable UUID idEspecialidad,
+            @Valid @RequestBody ActualizarCertificadoEspecialidadRequest request) {
+        especialidadService.actualizarCertificadoEspecialidad(idUsuarioTecnico, idEspecialidad, request.getCertificadoUrl());
+        return ResponseEntity.ok(ApiResponse.success("Certificado de especialidad actualizado exitosamente.", null));
     }
 
     @GetMapping("/{idEspecialidad}/tecnicos")

@@ -18,6 +18,7 @@ import java.util.UUID;
 public class CurrentUserResponse {
     private UUID idUsuario;
     private String correo;
+    private String telefono;
     private EstadoUsuario estado;
     private Boolean verificado;
     private LocalDateTime ultimoLogin;

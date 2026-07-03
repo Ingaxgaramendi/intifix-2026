@@ -25,6 +25,10 @@ public class AsignacionServicioResponse {
     private UUID idServicio;
     private UUID idUsuarioTecnico;
     private UUID idCotizacion;
+    /** Enriquecido desde servicios: título y datos del cliente. */
+    private String tituloServicio;
+    private UUID idCliente;
+    private String nombreCliente;
     private ZonedDateTime fechaAsignacion;
     private ZonedDateTime fechaInicioEstimada;
     private ZonedDateTime fechaInicioReal;

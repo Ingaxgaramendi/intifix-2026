@@ -29,9 +29,13 @@ public class RegisterRequest {
     private String clave;
 
     @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^[+]?[0-9]{10,20}$", message = "El teléfono debe tener entre 10 y 20 dígitos")
+    @Pattern(regexp = "^[+]?[0-9]{9,20}$", message = "El teléfono debe tener entre 9 y 20 dígitos")
     @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
     private String telefono;
+
+    @NotBlank(message = "El DNI o RUC es obligatorio")
+    @Pattern(regexp = "^(\\d{8}|\\d{11})$", message = "Ingresa un DNI (8 dígitos) o RUC (11 dígitos)")
+    private String dni;
 
     @NotEmpty(message = "Debe asignar al menos un rol")
     private Set<RolUsuario> roles;

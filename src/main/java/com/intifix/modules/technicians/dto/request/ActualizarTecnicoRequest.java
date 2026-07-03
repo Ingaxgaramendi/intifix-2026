@@ -52,5 +52,15 @@ public class ActualizarTecnicoRequest {
     @Pattern(regexp = "^(https?://|ftp://)?[\\w\\-]+(\\.[\\w\\-]+)+[/#?]?.*$|^$", message = "La URL del certificado técnico no es válida")
     private String certificadoTecnicoUrl;
 
+    // Sin patrón estricto: admite también URLs locales (http://localhost/uploads/...).
+    @Size(max = 1000, message = "La URL de la foto de perfil no puede exceder 1000 caracteres")
+    private String fotoPerfilUrl;
+
     private UUID idUbicacion;
+
+    @Size(max = 1000, message = "La descripción no puede exceder 1000 caracteres")
+    private String descripcion;
+
+    @Pattern(regexp = "^[0-9+()\\-\\s]{6,20}$|^$", message = "El teléfono de contacto no es válido")
+    private String telefonoContacto;
 }

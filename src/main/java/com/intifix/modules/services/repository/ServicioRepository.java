@@ -2,7 +2,7 @@ package com.intifix.modules.services.repository;
 
 import com.intifix.modules.services.entity.Servicio;
 import com.intifix.modules.services.enums.EstadoServicio;
-import com.intifix.modules.services.enums.PrioridadServicio;
+import com.intifix.modules.services.enums.TipoSolicitud;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -36,7 +36,9 @@ public interface ServicioRepository extends JpaRepository<Servicio, UUID> {
 
     Page<Servicio> findByEstadoIn(Collection<EstadoServicio> estados, Pageable pageable);
 
-    List<Servicio> findByPrioridad(PrioridadServicio prioridad);
+    Page<Servicio> findByEstadoInAndTipoSolicitud(Collection<EstadoServicio> estados, TipoSolicitud tipoSolicitud, Pageable pageable);
+
+    Page<Servicio> findByIdTecnicoDirectoAndEstadoIn(UUID idTecnicoDirecto, Collection<EstadoServicio> estados, Pageable pageable);
 
     List<Servicio> findByIdClienteAndEstado(UUID idCliente, EstadoServicio estado);
 

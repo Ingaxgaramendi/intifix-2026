@@ -3,18 +3,35 @@ package com.intifix.modules.services.service.impl;
 import com.intifix.modules.services.dto.request.ActualizarServicioRequest;
 import com.intifix.modules.services.dto.request.CambiarEstadoServicioRequest;
 import com.intifix.modules.services.dto.request.CrearServicioRequest;
+import com.intifix.modules.services.dto.response.CalificacionResponse;
+import com.intifix.modules.services.dto.response.CotizacionResponse;
+import com.intifix.modules.services.dto.response.EvidenciaServicioResponse;
 import com.intifix.modules.services.dto.response.ServicioDetalleResponse;
 import com.intifix.modules.services.dto.response.ServicioResponse;
+import com.intifix.modules.services.entity.AsignacionServicio;
+import com.intifix.modules.services.entity.Cotizacion;
 import com.intifix.modules.services.entity.HistorialServicio;
 import com.intifix.modules.services.entity.Servicio;
+import com.intifix.modules.services.enums.EstadoCotizacion;
 import com.intifix.modules.services.enums.EstadoServicio;
+import com.intifix.modules.services.enums.ModalidadServicio;
+import com.intifix.modules.services.enums.TipoFecha;
+import com.intifix.modules.services.enums.TipoSolicitud;
 import com.intifix.modules.services.event.ServicioCreadoEvent;
 import com.intifix.modules.audit.event.ServiceCreatedEvent;
 import com.intifix.modules.audit.event.ServiceCancelledEvent;
 import com.intifix.modules.services.exception.*;
 import com.intifix.modules.services.gateway.GeolocationGateway;
 import com.intifix.modules.services.gateway.UserGateway;
+import com.intifix.modules.services.mapper.CalificacionMapper;
+import com.intifix.modules.services.mapper.CotizacionMapper;
+import com.intifix.modules.services.mapper.EvidenciaMapper;
+import com.intifix.modules.services.mapper.ServicioDetalleMapper;
 import com.intifix.modules.services.mapper.ServicioMapper;
+import com.intifix.modules.services.repository.AsignacionServicioRepository;
+import com.intifix.modules.services.repository.CalificacionRepository;
+import com.intifix.modules.services.repository.CotizacionRepository;
+import com.intifix.modules.services.repository.EvidenciaServicioRepository;
 import com.intifix.modules.services.repository.HistorialServicioRepository;
 import com.intifix.modules.services.repository.ServicioRepository;
 import com.intifix.modules.services.service.ServicioService;
@@ -28,8 +45,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service implementation for Servicio operations.
@@ -47,7 +69,15 @@ public class ServicioServiceImpl implements ServicioService {
 
     private final ServicioRepository servicioRepository;
     private final HistorialServicioRepository historialServicioRepository;
+    private final CotizacionRepository cotizacionRepository;
+    private final EvidenciaServicioRepository evidenciaServicioRepository;
+    private final AsignacionServicioRepository asignacionServicioRepository;
+    private final CalificacionRepository calificacionRepository;
     private final ServicioMapper servicioMapper;
+    private final ServicioDetalleMapper servicioDetalleMapper;
+    private final CotizacionMapper cotizacionMapper;
+    private final EvidenciaMapper evidenciaMapper;
+    private final CalificacionMapper calificacionMapper;
     private final UserGateway userGateway;
     private final GeolocationGateway geolocationGateway;
     private final ApplicationEventPublisher eventPublisher;
@@ -63,14 +93,64 @@ public class ServicioServiceImpl implements ServicioService {
             throw ClienteNoEncontradoException.byId(idCliente);
         }
 
-        if (!geolocationGateway.existsLocation(request.getIdUbicacion())) {
-            log.warn("Ubicación no encontrada: {}", request.getIdUbicacion());
-            throw UbicacionNoEncontradaException.byId(request.getIdUbicacion());
+        // La ubicación solo aplica a servicios a domicilio. En taller del técnico
+        // el cliente acude al taller, así que se ignora cualquier ubicación enviada.
+        if (request.getModalidad() == ModalidadServicio.EN_CASA_CLIENTE) {
+            if (request.getIdUbicacion() == null) {
+                throw new IllegalArgumentException("La ubicación es obligatoria para servicios a domicilio.");
+            }
+            if (!geolocationGateway.existsLocation(request.getIdUbicacion())) {
+                log.warn("Ubicación no encontrada: {}", request.getIdUbicacion());
+                throw UbicacionNoEncontradaException.byId(request.getIdUbicacion());
+            }
+        } else {
+            request.setIdUbicacion(null);
+        }
+
+        // Validate and normalise scheduling mode.
+        TipoFecha tipoFecha = (request.getTipoFecha() != null) ? request.getTipoFecha() : TipoFecha.EXACTA;
+        request.setTipoFecha(tipoFecha);
+        switch (tipoFecha) {
+            case EXACTA -> {
+                if (request.getFechaProgramada() == null)
+                    throw new IllegalArgumentException("La fecha programada es obligatoria para el modo exacto.");
+                if (!request.getFechaProgramada().isAfter(ZonedDateTime.now()))
+                    throw new IllegalArgumentException("La fecha programada debe ser futura.");
+            }
+            case RANGO -> {
+                if (request.getFechaInicioRango() == null || request.getFechaFinRango() == null)
+                    throw new IllegalArgumentException("El rango de fechas es obligatorio.");
+                if (!request.getFechaInicioRango().isAfter(ZonedDateTime.now()))
+                    throw new IllegalArgumentException("La fecha de inicio del rango debe ser futura.");
+                if (!request.getFechaFinRango().isAfter(request.getFechaInicioRango()))
+                    throw new IllegalArgumentException("La fecha fin debe ser posterior al inicio.");
+                long dias = ChronoUnit.DAYS.between(
+                    request.getFechaInicioRango().toLocalDate(),
+                    request.getFechaFinRango().toLocalDate()
+                );
+                if (dias > 5)
+                    throw new IllegalArgumentException("El rango de fechas no puede superar los 5 días.");
+            }
+            case URGENTE -> {
+                // No scheduled date; clear any accidental value sent by the client.
+                request.setFechaProgramada(null);
+                request.setFechaInicioRango(null);
+                request.setFechaFinRango(null);
+            }
         }
 
         Servicio servicio = servicioMapper.toEntity(request);
         servicio.setIdCliente(idCliente);
         servicio.setEstado(EstadoServicio.PENDIENTE);
+
+        TipoSolicitud tipo = (request.getTipoSolicitud() != null) ? request.getTipoSolicitud() : TipoSolicitud.PUBLICA;
+        servicio.setTipoSolicitud(tipo);
+        if (tipo == TipoSolicitud.DIRECTA) {
+            if (request.getIdTecnicoDirecto() == null) {
+                throw new IllegalArgumentException("Debe indicar el técnico para una solicitud directa.");
+            }
+            servicio.setIdTecnicoDirecto(request.getIdTecnicoDirecto());
+        }
         // UUID will be generated by database via Persistable<UUID>
 
         Servicio guardado = servicioRepository.save(servicio);
@@ -190,6 +270,13 @@ public class ServicioServiceImpl implements ServicioService {
             throw ServicioNoEliminableException.notPending(idServicio);
         }
 
+        // Aunque siga PENDIENTE, si ya recibió cotizaciones no se borra (hubo
+        // trabajo de técnicos): debe cancelarse para conservar la trazabilidad.
+        if (cotizacionRepository.existsByIdServicio(idServicio)) {
+            log.warn("Intento de eliminar servicio con cotizaciones: {}", idServicio);
+            throw ServicioNoEliminableException.hasCotizaciones(idServicio);
+        }
+
         servicioRepository.delete(servicio);
         log.info("Servicio eliminado exitosamente: {}", idServicio);
     }
@@ -223,23 +310,26 @@ public class ServicioServiceImpl implements ServicioService {
 
         verificarAccesoLectura(servicio);
 
-        ServicioDetalleResponse.ServicioDetalleResponseBuilder builder = ServicioDetalleResponse.builder()
-            .idServicio(servicio.getIdServicio())
-            .idCliente(servicio.getIdCliente())
-            .idUbicacion(servicio.getIdUbicacion())
-            .titulo(servicio.getTitulo())
-            .descripcion(servicio.getDescripcion())
-            .modalidad(servicio.getModalidad())
-            .prioridad(servicio.getPrioridad())
-            .estado(servicio.getEstado())
-            .presupuestoMaximo(servicio.getPresupuestoMaximo())
-            .fechaProgramada(servicio.getFechaProgramada())
-            .fechaCreacion(servicio.getFechaCreacion())
-            .fechaActualizacion(servicio.getFechaActualizacion())
-            .fechaFinalizacion(servicio.getFechaFinalizacion())
-            .motivoCancelacion(servicio.getMotivoCancelacion());
+        AsignacionServicio asignacion = asignacionServicioRepository
+            .findByIdServicio(idServicio).orElse(null);
 
-        return builder.build();
+        List<CotizacionResponse> cotizaciones = cotizacionRepository
+            .findByIdServicio(idServicio, Pageable.unpaged())
+            .getContent().stream()
+            .map(cotizacionMapper::toResponse)
+            .collect(Collectors.toList());
+
+        List<EvidenciaServicioResponse> evidencias = evidenciaServicioRepository
+            .findByIdServicio(idServicio).stream()
+            .map(evidenciaMapper::toResponse)
+            .collect(Collectors.toList());
+
+        CalificacionResponse calificacion = calificacionRepository
+            .findByIdServicio(idServicio)
+            .map(calificacionMapper::toResponse)
+            .orElse(null);
+
+        return servicioDetalleMapper.toDetalleResponse(servicio, asignacion, cotizaciones, evidencias, calificacion);
     }
 
     @Override
@@ -270,9 +360,123 @@ public class ServicioServiceImpl implements ServicioService {
     @Transactional(readOnly = true)
     public Page<ServicioResponse> obtenerServiciosDisponibles(Pageable pageable) {
         log.debug("Obteniendo servicios disponibles (marketplace)");
-        Page<Servicio> servicios = servicioRepository.findByEstadoIn(
-            List.of(EstadoServicio.PENDIENTE, EstadoServicio.COTIZANDO), pageable);
-        return servicios.map(servicioMapper::toResponse);
+        Page<Servicio> servicios = servicioRepository.findByEstadoInAndTipoSolicitud(
+            List.of(EstadoServicio.PENDIENTE, EstadoServicio.COTIZANDO), TipoSolicitud.PUBLICA, pageable);
+        // Enriquecer con el nombre del cliente; cache por página para no repetir
+        // la consulta cuando un mismo cliente tiene varios servicios.
+        Map<UUID, String> nombrePorCliente = new HashMap<>();
+        return servicios.map(servicio -> {
+            ServicioResponse resp = servicioMapper.toResponse(servicio);
+            UUID idCliente = servicio.getIdCliente();
+            if (idCliente != null) {
+                resp.setNombreCliente(
+                    nombrePorCliente.computeIfAbsent(idCliente, userGateway::getClientName));
+            }
+            return resp;
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ServicioResponse> obtenerSolicitudesDirectas(Pageable pageable) {
+        UUID idTecnico = SecurityUtils.currentUserId();
+        log.debug("Obteniendo solicitudes directas para técnico: {}", idTecnico);
+        Page<Servicio> servicios = servicioRepository.findByIdTecnicoDirectoAndEstadoIn(
+            idTecnico, List.of(EstadoServicio.PENDIENTE, EstadoServicio.COTIZANDO), pageable);
+        Map<UUID, String> nombrePorCliente = new HashMap<>();
+        return servicios.map(s -> {
+            ServicioResponse resp = servicioMapper.toResponse(s);
+            if (s.getIdCliente() != null) {
+                resp.setNombreCliente(nombrePorCliente.computeIfAbsent(s.getIdCliente(), userGateway::getClientName));
+            }
+            return resp;
+        });
+    }
+
+    @Override
+    @Transactional
+    public ServicioResponse aceptarSolicitudDirecta(UUID idServicio) {
+        UUID idTecnico = SecurityUtils.currentUserId();
+        log.info("Técnico {} aceptando solicitud directa {}", idTecnico, idServicio);
+
+        Servicio servicio = servicioRepository.findById(idServicio)
+            .orElseThrow(() -> ServicioNoEncontradoException.byId(idServicio));
+
+        if (servicio.getTipoSolicitud() != TipoSolicitud.DIRECTA) {
+            throw new IllegalStateException("El servicio no es una solicitud directa.");
+        }
+        if (!idTecnico.equals(servicio.getIdTecnicoDirecto())) {
+            throw new org.springframework.security.access.AccessDeniedException("No eres el técnico de esta solicitud directa.");
+        }
+        if (servicio.getEstado() != EstadoServicio.PENDIENTE && servicio.getEstado() != EstadoServicio.COTIZANDO) {
+            throw ServicioNoModificableException.finalized(idServicio);
+        }
+        if (asignacionServicioRepository.existsByIdServicio(idServicio)) {
+            throw new IllegalStateException("El servicio ya tiene un técnico asignado.");
+        }
+
+        // Auto-cotización: usa el presupuesto máximo del cliente; 0.01 si no definió.
+        java.math.BigDecimal precio = servicio.getPresupuestoMaximo() != null
+            ? servicio.getPresupuestoMaximo()
+            : java.math.BigDecimal.valueOf(0.01);
+
+        Cotizacion cotizacion = Cotizacion.builder()
+            .idServicio(idServicio)
+            .idUsuarioTecnico(idTecnico)
+            .precio(precio)
+            .tiempoEstimado("Por definir")
+            .comentario("Solicitud directa aceptada")
+            .estado(EstadoCotizacion.ACEPTADA)
+            .build();
+        cotizacion = cotizacionRepository.save(cotizacion);
+
+        AsignacionServicio asignacion = AsignacionServicio.builder()
+            .idAsignacion(UUID.randomUUID())
+            .idServicio(idServicio)
+            .idUsuarioTecnico(idTecnico)
+            .idCotizacion(cotizacion.getIdCotizacion())
+            .estadoServicio(EstadoServicio.ASIGNADO)
+            .fechaAsignacion(java.time.ZonedDateTime.now())
+            .build();
+        asignacionServicioRepository.save(asignacion);
+
+        EstadoServicio estadoAnterior = servicio.getEstado();
+        servicio.setEstado(EstadoServicio.ASIGNADO);
+        Servicio actualizado = servicioRepository.save(servicio);
+
+        registrarHistorial(idServicio, estadoAnterior,
+            EstadoServicio.ASIGNADO, "Solicitud directa aceptada por el técnico", idTecnico);
+
+        log.info("Solicitud directa {} aceptada por técnico {}", idServicio, idTecnico);
+        return servicioMapper.toResponse(actualizado);
+    }
+
+    @Override
+    @Transactional
+    public ServicioResponse rechazarSolicitudDirecta(UUID idServicio) {
+        UUID idTecnico = SecurityUtils.currentUserId();
+        log.info("Técnico {} rechazando solicitud directa {}", idTecnico, idServicio);
+
+        Servicio servicio = servicioRepository.findById(idServicio)
+            .orElseThrow(() -> ServicioNoEncontradoException.byId(idServicio));
+
+        if (servicio.getTipoSolicitud() != TipoSolicitud.DIRECTA) {
+            throw new IllegalStateException("El servicio no es una solicitud directa.");
+        }
+        if (!idTecnico.equals(servicio.getIdTecnicoDirecto())) {
+            throw new org.springframework.security.access.AccessDeniedException("No eres el técnico de esta solicitud directa.");
+        }
+
+        // El servicio vuelve al marketplace general.
+        servicio.setTipoSolicitud(TipoSolicitud.PUBLICA);
+        servicio.setIdTecnicoDirecto(null);
+        Servicio actualizado = servicioRepository.save(servicio);
+
+        registrarHistorial(idServicio, null, servicio.getEstado(),
+            "Solicitud directa rechazada; publicada en marketplace", idTecnico);
+
+        log.info("Solicitud directa {} rechazada; ahora es pública", idServicio);
+        return servicioMapper.toResponse(actualizado);
     }
 
     @Override

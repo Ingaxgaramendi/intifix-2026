@@ -1,6 +1,7 @@
 package com.intifix.modules.services.dto.response;
 
-import com.intifix.modules.services.enums.*;
+import com.intifix.modules.services.enums.EstadoServicio;
+import com.intifix.modules.services.enums.ModalidadServicio;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,10 +27,11 @@ public class ServicioDetalleResponse {
     private UUID idServicio;
     private UUID idCliente;
     private UUID idUbicacion;
+    private UUID idEspecialidad;
     private String titulo;
     private String descripcion;
+    private List<String> fotos;
     private ModalidadServicio modalidad;
-    private PrioridadServicio prioridad;
     private EstadoServicio estado;
     private BigDecimal presupuestoMaximo;
     private ZonedDateTime fechaProgramada;

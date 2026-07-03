@@ -1,6 +1,7 @@
 package com.intifix.modules.chat.controller;
 
 import com.intifix.modules.chat.dto.request.CrearConversacionRequest;
+import com.intifix.modules.chat.dto.request.CrearConsultaRequest;
 import com.intifix.modules.chat.dto.response.ConversacionResponse;
 import com.intifix.modules.chat.service.ConversacionService;
 import com.intifix.shared.api.ApiResponse;
@@ -94,6 +95,14 @@ public class ConversacionController {
         return ResponseEntity.ok(ApiResponse.success("Conversación archivada", null));
     }
 
+    @PatchMapping("/{idConversacion}/desarchivar")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'TECNICO')")
+    @Operation(summary = "Desarchivar conversación")
+    public ResponseEntity<ApiResponse<Void>> desarchivar(@PathVariable UUID idConversacion) {
+        conversacionService.desarchivar(idConversacion);
+        return ResponseEntity.ok(ApiResponse.success("Conversación desarchivada", null));
+    }
+
     @PatchMapping("/{idConversacion}/bloquear")
     @PreAuthorize("hasAnyRole('CLIENTE', 'TECNICO')")
     @Operation(summary = "Bloquear conversación")
@@ -106,6 +115,30 @@ public class ConversacionController {
     public ResponseEntity<ApiResponse<Void>> bloquear(@PathVariable UUID idConversacion) {
         conversacionService.bloquear(idConversacion);
         return ResponseEntity.ok(ApiResponse.success("Conversación bloqueada", null));
+    }
+
+    @PatchMapping("/{idConversacion}/desbloquear")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'TECNICO')")
+    @Operation(summary = "Desbloquear conversación")
+    public ResponseEntity<ApiResponse<Void>> desbloquear(@PathVariable UUID idConversacion) {
+        conversacionService.desbloquear(idConversacion);
+        return ResponseEntity.ok(ApiResponse.success("Conversación desbloqueada", null));
+    }
+
+    @PostMapping("/consulta")
+    @PreAuthorize("hasRole('CLIENTE')")
+    @Operation(summary = "Iniciar consulta", description = "Abre (o devuelve la existente) conversación de consulta con un técnico, sin servicio vinculado")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Consulta creada o ya existente devuelta"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Técnico no encontrado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Solo clientes pueden iniciar consultas")
+    })
+    public ResponseEntity<ApiResponse<ConversacionResponse>> crearConsulta(
+            @Valid @RequestBody CrearConsultaRequest request) {
+        ConversacionResponse response = conversacionService.crearConsulta(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Consulta iniciada", response));
     }
 
     @DeleteMapping("/{idConversacion}")

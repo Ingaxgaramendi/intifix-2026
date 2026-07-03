@@ -27,14 +27,14 @@ public interface HorarioTecnicoRepository extends JpaRepository<HorarioTecnico, 
     @Query("SELECT h FROM HorarioTecnico h WHERE h.idUsuarioTecnico = :idUsuarioTecnico AND h.diaSemana = :diaSemana " +
            "AND ((h.horaInicio <= :horaInicio AND h.horaFin > :horaInicio) OR " +
            "(h.horaInicio < :horaFin AND h.horaFin >= :horaFin) OR " +
-           "(h.horaInicio >= :horaInicio AND h.horaFin <= :horaFin)) AND h.activo = true")
+           "(h.horaInicio >= :horaInicio AND h.horaFin <= :horaFin))")
     List<HorarioTecnico> findHorariosSolapados(
             @Param("idUsuarioTecnico") UUID idUsuarioTecnico,
             @Param("diaSemana") Integer diaSemana,
             @Param("horaInicio") LocalTime horaInicio,
             @Param("horaFin") LocalTime horaFin);
 
-    @Query("SELECT h FROM HorarioTecnico h WHERE h.idUsuarioTecnico = :idUsuarioTecnico AND h.activo = true ORDER BY h.diaSemana, h.horaInicio")
+    @Query("SELECT h FROM HorarioTecnico h WHERE h.idUsuarioTecnico = :idUsuarioTecnico ORDER BY h.diaSemana, h.horaInicio")
     List<HorarioTecnico> findHorariosActivosByTecnico(@Param("idUsuarioTecnico") UUID idUsuarioTecnico);
 
     void deleteByIdUsuarioTecnico(UUID idUsuarioTecnico);

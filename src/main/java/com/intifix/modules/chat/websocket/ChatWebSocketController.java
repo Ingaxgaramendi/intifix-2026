@@ -3,6 +3,7 @@ package com.intifix.modules.chat.websocket;
 import com.intifix.modules.chat.dto.request.EnviarMensajeRequest;
 import com.intifix.modules.chat.dto.request.MarcarLeidoRequest;
 import com.intifix.modules.chat.dto.request.TypingRequest;
+import com.intifix.modules.chat.dto.response.EntregaEvent;
 import com.intifix.modules.chat.dto.response.LecturaEvent;
 import com.intifix.modules.chat.dto.response.PresenciaResponse;
 import com.intifix.modules.chat.dto.response.TypingEvent;
@@ -60,6 +61,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.read")
     public void marcarLeido(@Valid @Payload MarcarLeidoRequest request, Principal principal) {
         UUID userId = idUsuario(principal);
+        if (userId == null) return;
         conContexto(principal, () -> mensajeService.marcarLeida(request.getIdConversacion()));
 
         UUID otro = otroParticipante(request.getIdConversacion(), userId);
@@ -73,9 +75,31 @@ public class ChatWebSocketController {
         }
     }
 
+    @MessageMapping("/chat.delivered")
+    public void marcarEntregado(@Valid @Payload MarcarLeidoRequest request, Principal principal) {
+        UUID userId = idUsuario(principal);
+        if (userId == null) return;
+        long[] marcados = {0};
+        conContexto(principal, () -> marcados[0] = mensajeService.marcarRecibida(request.getIdConversacion()));
+
+        // Solo avisa al emisor si realmente hubo algo que pasar a "entregado".
+        if (marcados[0] > 0) {
+            UUID otro = otroParticipante(request.getIdConversacion(), userId);
+            if (otro != null) {
+                messagingTemplate.convertAndSendToUser(otro.toString(), "/queue/delivered",
+                        EntregaEvent.builder()
+                                .idConversacion(request.getIdConversacion())
+                                .idUsuario(userId)
+                                .fecha(Instant.now())
+                                .build());
+            }
+        }
+    }
+
     @MessageMapping("/chat.typing")
     public void escribiendo(@Valid @Payload TypingRequest request, Principal principal) {
         UUID userId = idUsuario(principal);
+        if (userId == null) return;
         UUID otro = otroParticipante(request.getIdConversacion(), userId);
         if (otro != null) {
             messagingTemplate.convertAndSendToUser(otro.toString(), "/queue/typing",
@@ -90,6 +114,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.online")
     public void online(Principal principal) {
         UUID userId = idUsuario(principal);
+        if (userId == null) return;
         presenciaService.marcarOnline(userId);
         difundirPresencia(userId);
     }
@@ -97,6 +122,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.offline")
     public void offline(Principal principal) {
         UUID userId = idUsuario(principal);
+        if (userId == null) return;
         presenciaService.marcarOffline(userId);
         difundirPresencia(userId);
     }
@@ -115,14 +141,21 @@ public class ChatWebSocketController {
     }
 
     private UUID idUsuario(Principal principal) {
-        Authentication auth = (Authentication) principal;
+        if (!(principal instanceof Authentication auth)) {
+            log.warn("WebSocket handler invoked without a valid Authentication principal — ignoring");
+            return null;
+        }
         AuthenticatedUser user = (AuthenticatedUser) auth.getPrincipal();
         return user.getId();
     }
 
     private void conContexto(Principal principal, Runnable accion) {
+        if (!(principal instanceof Authentication auth)) {
+            log.warn("conContexto: no valid Authentication — skipping action");
+            return;
+        }
         SecurityContext ctx = SecurityContextHolder.createEmptyContext();
-        ctx.setAuthentication((Authentication) principal);
+        ctx.setAuthentication(auth);
         SecurityContextHolder.setContext(ctx);
         try {
             accion.run();

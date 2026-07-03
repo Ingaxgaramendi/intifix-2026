@@ -15,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CrearExcepcionHorarioRequest {
 
-    @NotBlank(message = "El idUsuarioTecnico es obligatorio")
+    @NotNull(message = "El idUsuarioTecnico es obligatorio")
     private UUID idUsuarioTecnico;
 
     @NotNull(message = "La fecha de inicio es obligatoria")

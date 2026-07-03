@@ -1,0 +1,41 @@
+# ===========================================================================
+# Perfil LOCAL: apunta a los tres contenedores de docker-compose.yml.
+# Activar con:  mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+# Postgres/Redis en la nube (Aiven/Upstash) están bloqueados en la red
+# de la universidad → los tres servicios corren en Docker local.
+# ===========================================================================
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/intifix
+    username: intifix
+    password: intifix
+
+  jpa:
+    hibernate:
+      # Permitido solo en local: Hibernate ajusta el esquema automáticamente.
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/intifix_nosql
+      auto-index-creation: true
+
+    redis:
+      host: localhost
+      port: 6379
+      username:
+      password:
+      ssl:
+        enabled: false
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always

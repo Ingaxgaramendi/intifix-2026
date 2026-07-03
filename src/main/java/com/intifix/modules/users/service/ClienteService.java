@@ -3,6 +3,7 @@ package com.intifix.modules.users.service;
 import com.intifix.modules.users.dto.request.ActualizarClienteRequest;
 import com.intifix.modules.users.dto.request.CrearClienteRequest;
 import com.intifix.modules.users.dto.response.ClienteDetalleResponse;
+import com.intifix.modules.users.dto.response.ClientePerfilPublicoResponse;
 import com.intifix.modules.users.dto.response.ClienteResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,12 @@ public interface ClienteService {
     ClienteDetalleResponse obtenerDetalleClientePorId(UUID idUsuario);
 
     ClienteResponse actualizarCliente(UUID idUsuario, ActualizarClienteRequest request);
+
+    /** Fija/actualiza la ubicación base guardada del cliente (FK a ubicaciones). */
+    ClienteResponse asignarUbicacion(UUID idUsuario, UUID idUbicacion);
+
+    /** Vista pública (para técnicos): datos de confianza sin info sensible. */
+    ClientePerfilPublicoResponse obtenerPerfilPublico(UUID idUsuario);
 
     void eliminarCliente(UUID idUsuario);
 

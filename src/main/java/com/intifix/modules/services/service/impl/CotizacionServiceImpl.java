@@ -26,7 +26,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.intifix.modules.services.enums.TipoFecha;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -79,6 +81,32 @@ public class CotizacionServiceImpl implements CotizacionService {
         if (!technicianGateway.isAvailable(idUsuarioTecnico)) {
             log.warn("Técnico no disponible: {}", idUsuarioTecnico);
             throw TecnicoNoDisponibleException.byId(idUsuarioTecnico);
+        }
+
+        // Validate proposed date based on service scheduling mode.
+        TipoFecha tipoFecha = servicio.getTipoFecha() != null ? servicio.getTipoFecha() : TipoFecha.EXACTA;
+        ZonedDateTime ahora = ZonedDateTime.now();
+        switch (tipoFecha) {
+            case URGENTE -> {
+                if (request.getFechaPropuesta() == null)
+                    throw new IllegalArgumentException("Debes proponer una hora: hoy o a más tardar mañana.");
+                if (!request.getFechaPropuesta().isAfter(ahora))
+                    throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
+                ZonedDateTime limiteUrgente = ahora.plusDays(2).truncatedTo(ChronoUnit.DAYS);
+                if (!request.getFechaPropuesta().isBefore(limiteUrgente))
+                    throw new IllegalArgumentException("Para servicios urgentes solo puedes proponer hoy o mañana.");
+            }
+            case RANGO -> {
+                if (request.getFechaPropuesta() == null)
+                    throw new IllegalArgumentException("Debes proponer una fecha y hora dentro del rango solicitado.");
+                if (!request.getFechaPropuesta().isAfter(ahora))
+                    throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
+                ZonedDateTime finRango = servicio.getFechaFinRango().plusDays(1).truncatedTo(ChronoUnit.DAYS);
+                if (request.getFechaPropuesta().isBefore(servicio.getFechaInicioRango()) ||
+                    !request.getFechaPropuesta().isBefore(finRango))
+                    throw new IllegalArgumentException("La fecha propuesta debe estar dentro del rango indicado por el cliente.");
+            }
+            case EXACTA -> { /* fecha ya fijada por el cliente; no se requiere propuesta */ }
         }
 
         Cotizacion cotizacion = cotizacionMapper.toEntity(request);

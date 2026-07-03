@@ -31,6 +31,9 @@ public interface GeoPostgresGateway {
 
     Optional<UbicacionPublica> obtenerUbicacionPublica(UUID idTecnico);
 
+    /** Una ubicación por su id (tabla {@code ubicaciones}), sin pasar por el perfil del técnico. */
+    Optional<UbicacionPublica> obtenerPorId(UUID idUbicacion);
+
     /** UUIDs de técnicos aprobados que tienen una especialidad dada. */
     Set<UUID> tecnicosConEspecialidad(UUID idEspecialidad);
 

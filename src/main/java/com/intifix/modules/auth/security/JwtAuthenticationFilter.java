@@ -3,6 +3,7 @@ package com.intifix.modules.auth.security;
 import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.auth.exception.InvalidTokenException;
 import com.intifix.modules.auth.repository.UsuarioAuthRepository;
+import com.intifix.modules.auth.repository.UsuarioAuthRepository.EstadoConSuspension;
 import com.intifix.shared.security.AuthenticatedUser;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -20,6 +21,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -68,11 +71,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // El estado de la cuenta se verifica contra BD (proyección ligera,
             // no carga la entidad) para que bans/suspensiones apliquen de inmediato.
-            EstadoUsuario estado = usuarioAuthRepository.obtenerEstadoPorId(userId).orElse(null);
-            if (estado == null) {
+            EstadoConSuspension estadoInfo = usuarioAuthRepository.obtenerEstadoConSuspensionPorId(userId).orElse(null);
+            if (estadoInfo == null) {
                 log.warn("Token válido para un usuario que ya no existe: {}", userId);
                 filterChain.doFilter(request, response);
                 return;
+            }
+            EstadoUsuario estado = estadoInfo.getEstado();
+            // Suspensión temporal: si ya venció, se trata como ACTIVO (el DB update ocurre en el próximo login).
+            if (estado == EstadoUsuario.SUSPENDIDO) {
+                LocalDateTime hasta = estadoInfo.getSuspensionHasta();
+                if (hasta != null && LocalDateTime.now(ZoneId.systemDefault()).isAfter(hasta)) {
+                    log.info("Suspensión expirada para usuario {}; acceso permitido hasta próximo login", userId);
+                    estado = EstadoUsuario.ACTIVO;
+                }
             }
             if (estado != EstadoUsuario.ACTIVO) {
                 log.warn("Acceso denegado por estado de cuenta {} para usuario: {}", estado, userId);
@@ -121,6 +133,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return path.startsWith("/api/v1/auth/login") ||
                path.startsWith("/api/v1/auth/register") ||
                path.startsWith("/api/v1/auth/refresh") ||
+               path.startsWith("/api/v1/auth/apelar") ||
+               path.startsWith("/api/v1/auth/password/forgot") ||
                path.startsWith("/swagger-ui") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/actuator/health");

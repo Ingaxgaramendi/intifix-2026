@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 /**
@@ -37,4 +38,7 @@ public class CrearCotizacionRequest {
 
     @Size(max = 1000, message = "El comentario no puede exceder 1000 caracteres")
     private String comentario;
+
+    /** Fecha y hora propuesta por el técnico. Requerida para modos URGENTE y RANGO; validada en la capa de servicio. */
+    private ZonedDateTime fechaPropuesta;
 }

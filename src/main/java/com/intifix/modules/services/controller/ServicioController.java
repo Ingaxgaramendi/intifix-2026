@@ -45,7 +45,7 @@ public class ServicioController {
 
     /** Propiedades por las que se permite ordenar los listados de servicios. */
     private static final Set<String> ORDEN_PERMITIDO =
-        Set.of("fechaCreacion", "fechaProgramada", "prioridad", "estado");
+        Set.of("fechaCreacion", "fechaProgramada", "estado");
 
     /** Orden por defecto cuando el solicitado es inválido o está vacío. */
     private static final Sort ORDEN_DEFECTO = Sort.by(Sort.Direction.DESC, "fechaCreacion");
@@ -254,5 +254,48 @@ public class ServicioController {
             @Parameter(description = "Estado del servicio", schema = @Schema(type = "string", allowableValues = {"PENDIENTE", "COTIZANDO", "ASIGNADO", "EN_PROCESO", "FINALIZADO", "CANCELADO"})) @PathVariable EstadoServicio estado) {
         long total = servicioService.contarServiciosPorEstado(estado);
         return ResponseEntity.ok(ApiResponse.success("Total de servicios por estado calculado", total));
+    }
+
+    @GetMapping("/directas")
+    @PreAuthorize("hasRole('TECNICO')")
+    @Operation(summary = "Mis solicitudes directas", description = "Lista los servicios enviados directamente al técnico autenticado (PENDIENTE/COTIZANDO)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Solicitudes directas obtenidas"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Solo técnicos")
+    })
+    public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerSolicitudesDirectas(
+            @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
+        return ResponseEntity.ok(ApiResponse.success("Solicitudes directas obtenidas",
+                servicioService.obtenerSolicitudesDirectas(saneado)));
+    }
+
+    @PostMapping("/directas/{idServicio}/aceptar")
+    @PreAuthorize("hasRole('TECNICO')")
+    @Operation(summary = "Aceptar solicitud directa", description = "El técnico acepta la solicitud; se crea cotizacion y asignación automáticas")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Solicitud aceptada y servicio asignado"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No eres el técnico de esta solicitud"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> aceptarSolicitudDirecta(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio) {
+        ServicioResponse response = servicioService.aceptarSolicitudDirecta(idServicio);
+        return ResponseEntity.ok(ApiResponse.success("Solicitud aceptada", response));
+    }
+
+    @PostMapping("/directas/{idServicio}/rechazar")
+    @PreAuthorize("hasRole('TECNICO')")
+    @Operation(summary = "Rechazar solicitud directa", description = "El técnico rechaza; el servicio vuelve al marketplace público")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Solicitud rechazada; servicio publicado en marketplace"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "No eres el técnico de esta solicitud"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Servicio no encontrado")
+    })
+    public ResponseEntity<ApiResponse<ServicioResponse>> rechazarSolicitudDirecta(
+            @Parameter(description = "ID del servicio") @PathVariable UUID idServicio) {
+        ServicioResponse response = servicioService.rechazarSolicitudDirecta(idServicio);
+        return ResponseEntity.ok(ApiResponse.success("Solicitud rechazada; publicada en marketplace", response));
     }
 }

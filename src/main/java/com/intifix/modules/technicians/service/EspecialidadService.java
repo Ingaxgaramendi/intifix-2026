@@ -4,6 +4,7 @@ import com.intifix.modules.technicians.dto.request.ActualizarEspecialidadRequest
 import com.intifix.modules.technicians.dto.request.AsignarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearEspecialidadRequest;
 import com.intifix.modules.technicians.dto.response.EspecialidadResponse;
+import com.intifix.modules.technicians.dto.response.EspecialidadTecnicoResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,7 +27,9 @@ public interface EspecialidadService {
 
     void removerEspecialidadDeTecnico(UUID idUsuarioTecnico, UUID idEspecialidad);
 
-    List<EspecialidadResponse> listarEspecialidadesPorTecnico(UUID idUsuarioTecnico);
+    List<EspecialidadTecnicoResponse> listarEspecialidadesPorTecnico(UUID idUsuarioTecnico);
+
+    void actualizarCertificadoEspecialidad(UUID idUsuarioTecnico, UUID idEspecialidad, String certificadoUrl);
 
     List<UUID> listarTecnicosPorEspecialidad(UUID idEspecialidad);
 

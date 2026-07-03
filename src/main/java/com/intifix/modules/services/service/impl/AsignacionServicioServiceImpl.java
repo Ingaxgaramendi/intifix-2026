@@ -15,14 +15,19 @@ import com.intifix.modules.services.repository.AsignacionServicioRepository;
 import com.intifix.modules.services.repository.CotizacionRepository;
 import com.intifix.modules.services.repository.HistorialServicioRepository;
 import com.intifix.modules.services.repository.ServicioRepository;
+import com.intifix.modules.services.gateway.UserGateway;
 import com.intifix.modules.services.service.AsignacionServicioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -42,6 +47,7 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
     private final HistorialServicioRepository historialServicioRepository;
     private final AsignacionServicioMapper asignacionServicioMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserGateway userGateway;
 
     @Override
     @Transactional
@@ -155,12 +161,23 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<AsignacionServicioResponse> obtenerAsignacionesPorTecnico(UUID idUsuarioTecnico) {
+    public Page<AsignacionServicioResponse> obtenerAsignacionesPorTecnico(UUID idUsuarioTecnico, Pageable pageable) {
         log.debug("Obteniendo asignaciones por técnico: {}", idUsuarioTecnico);
-        List<AsignacionServicio> asignaciones = asignacionServicioRepository.findByIdUsuarioTecnico(idUsuarioTecnico);
-        return asignaciones.stream()
-            .map(asignacionServicioMapper::toResponse)
-            .toList();
+        Map<UUID, String> nombreCache = new HashMap<>();
+        return asignacionServicioRepository
+            .findByIdUsuarioTecnico(idUsuarioTecnico, pageable)
+            .map(a -> {
+                AsignacionServicioResponse resp = asignacionServicioMapper.toResponse(a);
+                servicioRepository.findById(a.getIdServicio()).ifPresent(s -> {
+                    resp.setTituloServicio(s.getTitulo());
+                    resp.setIdCliente(s.getIdCliente());
+                    if (s.getIdCliente() != null) {
+                        resp.setNombreCliente(
+                            nombreCache.computeIfAbsent(s.getIdCliente(), userGateway::getClientName));
+                    }
+                });
+                return resp;
+            });
     }
 
     @Override

@@ -48,6 +48,9 @@ public class PerfilTecnico {
     @Column(name = "tarifa_base", nullable = false, precision = 10, scale = 2)
     private BigDecimal tarifaBase;
 
+    @Column(name = "foto_perfil_url", columnDefinition = "TEXT")
+    private String fotoPerfilUrl;
+
     @Column(name = "dni_frontal_url", columnDefinition = "TEXT")
     private String dniFrontalUrl;
 
@@ -62,6 +65,12 @@ public class PerfilTecnico {
 
     @Column(name = "id_ubicacion")
     private UUID idUbicacion;
+
+    @Column(name = "descripcion", columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(name = "telefono_contacto", length = 20)
+    private String telefonoContacto;
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     @Builder.Default

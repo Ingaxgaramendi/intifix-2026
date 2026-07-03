@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,12 +17,19 @@ public interface UsuarioAuthRepository extends JpaRepository<UsuarioAuth, UUID>,
 
     Optional<UsuarioAuth> findByCorreo(String correo);
 
-    /**
-     * Proyección ligera para el filtro JWT: verifica el estado de la cuenta
-     * en cada request sin hidratar la entidad completa ni sus roles.
-     */
+    /** Proyección ligera para el filtro JWT: estado + fecha de fin de suspensión. */
+    interface EstadoConSuspension {
+        EstadoUsuario getEstado();
+        LocalDateTime getSuspensionHasta();
+    }
+
+    @Query("SELECT u.estado as estado, u.suspensionHasta as suspensionHasta FROM UsuarioAuth u WHERE u.idUsuario = :idUsuario")
+    Optional<EstadoConSuspension> obtenerEstadoConSuspensionPorId(@Param("idUsuario") UUID idUsuario);
+
+    /** Proyección mínima para enriquecer DTOs de perfil sin cargar la entidad completa. */
     @Query("SELECT u.estado FROM UsuarioAuth u WHERE u.idUsuario = :idUsuario")
     Optional<EstadoUsuario> obtenerEstadoPorId(@Param("idUsuario") UUID idUsuario);
+
 
     boolean existsByCorreo(String correo);
 

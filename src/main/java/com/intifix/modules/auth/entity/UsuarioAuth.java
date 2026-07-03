@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+// No ZonedDateTime: suspensionHasta uses LocalDateTime to match the table timezone (server-local).
 
 @Entity
 @Table(name = "usuarios")
@@ -57,6 +58,10 @@ public class UsuarioAuth {
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime fechaRegistro = LocalDateTime.now();
+
+    /** Cuándo se levanta automáticamente la suspensión. NULL si es indefinida (ban) o cuenta activa. */
+    @Column(name = "suspension_hasta")
+    private LocalDateTime suspensionHasta;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(

@@ -19,4 +19,9 @@ public class ServicioNoEliminableException extends ServicioException {
     public static ServicioNoEliminableException notPending(UUID idServicio) {
         return new ServicioNoEliminableException("Solo se pueden eliminar servicios en estado PENDIENTE: " + idServicio);
     }
+
+    public static ServicioNoEliminableException hasCotizaciones(UUID idServicio) {
+        return new ServicioNoEliminableException(
+            "No se puede eliminar un servicio que ya tiene cotizaciones; cancélalo en su lugar: " + idServicio);
+    }
 }

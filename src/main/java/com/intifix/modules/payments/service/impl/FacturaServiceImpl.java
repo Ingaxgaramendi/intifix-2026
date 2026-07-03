@@ -4,17 +4,21 @@ import com.intifix.modules.payments.dto.request.CrearFacturaRequest;
 import com.intifix.modules.payments.dto.response.FacturaResponse;
 import com.intifix.modules.payments.entity.EstadoFiscalComprobante;
 import com.intifix.modules.payments.entity.Factura;
+import com.intifix.modules.payments.entity.Pago;
 import com.intifix.modules.payments.entity.TipoComprobante;
 import com.intifix.modules.payments.event.FacturaEmitidaEvent;
 import com.intifix.modules.audit.event.InvoiceGeneratedEvent;
 import com.intifix.modules.payments.exception.FacturaNoEncontradaException;
+import com.intifix.modules.payments.gateway.ServiceGateway;
 import com.intifix.modules.payments.mapper.FacturaMapper;
 import com.intifix.modules.payments.repository.FacturaRepository;
 import com.intifix.modules.payments.repository.PagoRepository;
 import com.intifix.modules.payments.service.interfaces.FacturaService;
+import com.intifix.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +35,7 @@ public class FacturaServiceImpl implements FacturaService {
     private final PagoRepository pagoRepository;
     private final FacturaMapper facturaMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final ServiceGateway serviceGateway;
 
     @Override
     @Transactional
@@ -38,6 +43,7 @@ public class FacturaServiceImpl implements FacturaService {
         log.info("Creando factura para pago: {}", request.getIdPago());
 
         validarPago(request.getIdPago());
+        verificarPropietarioDelPago(request.getIdPago());
         validarNoFacturaDuplicada(request.getIdPago());
 
         if (request.getCodigoComprobante() == null || request.getCodigoComprobante().isBlank()) {
@@ -80,6 +86,7 @@ public class FacturaServiceImpl implements FacturaService {
     @Override
     @Transactional(readOnly = true)
     public FacturaResponse obtenerFacturaPorPago(UUID idPago) {
+        verificarPropietarioDelPago(idPago);
         Factura factura = facturaRepository.findByIdPago(idPago)
                 .orElseThrow(() -> new FacturaNoEncontradaException("No existe factura para el pago: " + idPago));
         return facturaMapper.toResponse(factura);
@@ -113,6 +120,24 @@ public class FacturaServiceImpl implements FacturaService {
     private void validarPago(UUID idPago) {
         if (!pagoRepository.existsById(idPago)) {
             throw new FacturaNoEncontradaException("Pago no encontrado: " + idPago);
+        }
+    }
+
+    /**
+     * Solo el cliente dueño del servicio del pago (o un ADMIN) puede generar/leer
+     * su comprobante. Cierra el acceso entre clientes manteniéndolo fuera de ADMIN.
+     */
+    private void verificarPropietarioDelPago(UUID idPago) {
+        if (SecurityUtils.tieneRol("ADMIN")) {
+            return;
+        }
+        Pago pago = pagoRepository.findById(idPago)
+                .orElseThrow(() -> new FacturaNoEncontradaException("Pago no encontrado: " + idPago));
+        UUID idCliente = serviceGateway.findById(pago.getIdServicio())
+                .map(ServiceGateway.ServiceInfo::idCliente)
+                .orElse(null);
+        if (!SecurityUtils.currentUserId().equals(idCliente)) {
+            throw new AccessDeniedException("Solo el dueño del servicio puede operar este comprobante");
         }
     }
 

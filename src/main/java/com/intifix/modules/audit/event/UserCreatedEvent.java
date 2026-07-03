@@ -10,5 +10,6 @@ public record UserCreatedEvent(
         UUID userId,
         String email,
         String nombre,
-        String rol
+        String rol,
+        String dni
 ) {}

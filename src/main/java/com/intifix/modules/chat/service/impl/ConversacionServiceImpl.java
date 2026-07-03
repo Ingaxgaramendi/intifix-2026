@@ -1,9 +1,11 @@
 package com.intifix.modules.chat.service.impl;
 
 import com.intifix.modules.chat.dto.request.CrearConversacionRequest;
+import com.intifix.modules.chat.dto.request.CrearConsultaRequest;
 import com.intifix.modules.chat.dto.response.ConversacionResponse;
 import com.intifix.modules.chat.entity.ConversacionDocument;
 import com.intifix.modules.chat.entity.EstadoConversacion;
+import com.intifix.modules.chat.entity.TipoConversacion;
 import com.intifix.modules.chat.exception.ConversacionDuplicadaException;
 import com.intifix.modules.chat.exception.ConversacionNoEncontradaException;
 import com.intifix.modules.chat.exception.ServicioInvalidoException;
@@ -95,6 +97,15 @@ public class ConversacionServiceImpl implements ConversacionService {
     }
 
     @Override
+    public void desarchivar(UUID idConversacion) {
+        UUID userId = SecurityUtils.currentUserId();
+        ConversacionDocument doc = cargarParticipando(idConversacion, userId);
+        doc.setEstado(EstadoConversacion.ACTIVA);
+        conversacionRepository.save(doc);
+        log.info("Conversación desarchivada: {}", idConversacion);
+    }
+
+    @Override
     public void bloquear(UUID idConversacion) {
         UUID userId = SecurityUtils.currentUserId();
         ConversacionDocument doc = cargarParticipando(idConversacion, userId);
@@ -105,12 +116,52 @@ public class ConversacionServiceImpl implements ConversacionService {
     }
 
     @Override
+    public void desbloquear(UUID idConversacion) {
+        UUID userId = SecurityUtils.currentUserId();
+        ConversacionDocument doc = cargarParticipando(idConversacion, userId);
+        doc.setEstado(EstadoConversacion.ACTIVA);
+        doc.setBloqueadaPor(null);
+        conversacionRepository.save(doc);
+        log.info("Conversación {} desbloqueada por {}", idConversacion, userId);
+    }
+
+    @Override
     public void eliminar(UUID idConversacion) {
         UUID userId = SecurityUtils.currentUserId();
         ConversacionDocument doc = cargarParticipando(idConversacion, userId);
         mensajeRepository.deleteByIdConversacion(idConversacion);
         conversacionRepository.delete(doc);
         log.info("Conversación {} eliminada por {}", idConversacion, userId);
+    }
+
+    @Override
+    public ConversacionResponse crearConsulta(CrearConsultaRequest request) {
+        UUID idCliente = SecurityUtils.currentUserId();
+        UUID idTecnico = request.getIdTecnico();
+        log.info("Creando consulta entre cliente {} y técnico {}", idCliente, idTecnico);
+
+        if (!chatGateway.existeUsuario(idTecnico)) {
+            throw new IllegalArgumentException("El técnico indicado no existe.");
+        }
+
+        // Idempotente: si ya existe la devolvemos en lugar de lanzar 409.
+        return conversacionRepository.findByIdClienteAndIdTecnicoAndTipo(idCliente, idTecnico, TipoConversacion.CONSULTA)
+                .map(doc -> aResponse(doc, idCliente))
+                .orElseGet(() -> {
+                    ConversacionDocument doc = ConversacionDocument.builder()
+                            .id(UUID.randomUUID())
+                            .idServicio(null)
+                            .idCliente(idCliente)
+                            .idTecnico(idTecnico)
+                            .tipo(TipoConversacion.CONSULTA)
+                            .estado(EstadoConversacion.ACTIVA)
+                            .noLeidosCliente(0)
+                            .noLeidosTecnico(0)
+                            .build();
+                    ConversacionDocument guardada = conversacionRepository.save(doc);
+                    log.info("Consulta creada: {}", guardada.getId());
+                    return aResponse(guardada, idCliente);
+                });
     }
 
     @Override

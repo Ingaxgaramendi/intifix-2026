@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,6 +43,10 @@ public class UserGatewayImpl implements UserGateway {
 
     private static final String SQL_GET_USER_ROLE = """
         SELECT rol FROM usuario_roles WHERE id_usuario = ? LIMIT 1
+        """;
+
+    private static final String SQL_GET_CLIENT_NAME = """
+        SELECT nombres_completos FROM perfiles_cliente WHERE id_usuario = ?
         """;
 
     @Override
@@ -93,5 +98,16 @@ public class UserGatewayImpl implements UserGateway {
         String role = jdbcTemplate.queryForObject(SQL_GET_USER_ROLE, String.class, idUsuario);
         log.debug("User role: {} for id: {}", role, idUsuario);
         return role;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getClientName(UUID idCliente) {
+        if (idCliente == null) {
+            return null;
+        }
+        List<String> nombres = jdbcTemplate.query(
+                SQL_GET_CLIENT_NAME, (rs, n) -> rs.getString(1), idCliente);
+        return nombres.isEmpty() ? null : nombres.get(0);
     }
 }

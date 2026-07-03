@@ -5,17 +5,13 @@ import com.intifix.modules.services.dto.response.CotizacionResponse;
 import com.intifix.modules.services.entity.Cotizacion;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-/**
- * MapStruct mapper for Cotizacion entity and DTOs.
- * 
- * @author INTIFIX Architecture Team
- * @version 1.0
- */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface CotizacionMapper {
 
     @Mapping(target = "idCotizacion", ignore = true)
+    @Mapping(target = "idUsuarioTecnico", ignore = true)
     @Mapping(target = "estado", ignore = true)
     @Mapping(target = "fechaEnvio", ignore = true)
     @Mapping(target = "fechaRespuesta", ignore = true)

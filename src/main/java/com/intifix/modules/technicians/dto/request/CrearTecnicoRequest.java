@@ -17,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CrearTecnicoRequest {
 
-    @NotBlank(message = "El idUsuario es obligatorio")
+    @NotNull(message = "El idUsuario es obligatorio")
     private UUID idUsuario;
 
     @NotBlank(message = "Los nombres completos son obligatorios")

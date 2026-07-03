@@ -1,13 +1,16 @@
 package com.intifix.modules.auth.controller;
 
 import com.intifix.modules.auth.dto.*;
+import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.auth.service.AuthService;
 import com.intifix.shared.api.ApiResponse;
 import com.intifix.shared.security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,5 +60,48 @@ public class AuthController {
             @AuthenticationPrincipal AuthenticatedUser usuario) {
         CurrentUserResponse response = authService.getCurrentUser(usuario.getId());
         return ResponseEntity.ok(ApiResponse.success("Usuario actual recuperado.", response));
+    }
+
+    @PatchMapping("/usuarios/{idUsuario}/estado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> cambiarEstadoUsuario(
+            @PathVariable java.util.UUID idUsuario,
+            @jakarta.validation.Valid @RequestBody CambiarEstadoUsuarioRequest request) {
+        authService.cambiarEstadoUsuario(idUsuario, request.getEstado());
+        return ResponseEntity.ok(ApiResponse.success("Estado del usuario actualizado.", null));
+    }
+
+    @PatchMapping("/me/telefono")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserSessionResponse>> actualizarTelefono(
+            @AuthenticationPrincipal AuthenticatedUser usuario,
+            @Valid @RequestBody ActualizarTelefonoRequest request) {
+        UserSessionResponse response = authService.actualizarTelefono(usuario.getId(), request.getTelefono());
+        return ResponseEntity.ok(ApiResponse.success("Teléfono actualizado.", response));
+    }
+
+    @PostMapping("/password/forgot")
+    @Operation(summary = "Solicitar recuperación de contraseña", description = "Envía un email con enlace de recuperación. Siempre responde 200 para no revelar si el correo existe.")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getCorreo());
+        return ResponseEntity.ok(ApiResponse.success(
+            "Si ese correo está registrado, recibirás un enlace en los próximos minutos.", null));
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "Restablecer contraseña con token de email")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNuevaPassword());
+        return ResponseEntity.ok(ApiResponse.success("Contraseña actualizada correctamente. Ya puedes iniciar sesión.", null));
+    }
+
+    @PatchMapping("/me/password")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Cambiar contraseña del usuario autenticado")
+    public ResponseEntity<ApiResponse<Void>> cambiarPassword(
+            @AuthenticationPrincipal AuthenticatedUser usuario,
+            @Valid @RequestBody CambiarPasswordRequest request) {
+        authService.cambiarPassword(usuario.getId(), request.getPasswordActual(), request.getNuevaPassword());
+        return ResponseEntity.ok(ApiResponse.success("Contraseña actualizada. Revisa tu correo.", null));
     }
 }

@@ -17,6 +17,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -47,11 +49,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
         if (usuario.getEstado() == EstadoUsuario.SUSPENDIDO) {
-            log.warn("Intento de acceso de usuario suspendido: {}", correo);
-            throw AccountSuspendedException.defaultMessage();
-        }
-
-        if (usuario.getEstado() != EstadoUsuario.ACTIVO) {
+            LocalDateTime hasta = usuario.getSuspensionHasta();
+            boolean expirada = hasta != null && LocalDateTime.now(ZoneId.systemDefault()).isAfter(hasta);
+            if (!expirada) {
+                log.warn("Intento de acceso de usuario suspendido: {}", correo);
+                throw AccountSuspendedException.defaultMessage();
+            }
+            // Suspensión expirada: AuthServiceImpl ya la reactivó en BD; se permite continuar.
+            log.info("Suspensión expirada para {}; permitiendo carga de UserDetails", correo);
+        } else if (usuario.getEstado() != EstadoUsuario.ACTIVO) {
             log.warn("Usuario con estado no activo: {}, estado: {}", correo, usuario.getEstado());
             throw new AccountSuspendedException("La cuenta no se encuentra activa. Estado: " + usuario.getEstado());
         }
@@ -66,8 +72,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             .username(usuario.getCorreo())
             .password(usuario.getPasswordHash())
             .authorities(authorities)
-            .accountLocked(usuario.getEstado() == EstadoUsuario.SUSPENDIDO)
-            .disabled(usuario.getEstado() == EstadoUsuario.BANEADO)
+            .accountLocked(false)
+            .disabled(false)
             .accountExpired(false)
             .credentialsExpired(false)
             .build();

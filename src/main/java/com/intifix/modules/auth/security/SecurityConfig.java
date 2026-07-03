@@ -17,10 +17,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 /**
- * ÚNICA configuración de seguridad de la aplicación. Vive en modules/auth:
- * shared no contiene SecurityConfig, filtros JWT ni beans de autenticación.
+ * Única configuración de seguridad. Vive en modules/auth.
+ *
+ * Headers de seguridad aplicados a todas las respuestas:
+ *  - X-Content-Type-Options: nosniff       (anti-MIME-sniff)
+ *  - X-Frame-Options: DENY                 (anti-clickjacking)
+ *  - X-XSS-Protection: 0                   (deshabilitado; CSP es mejor)
+ *  - Referrer-Policy: strict-origin-when-cross-origin
+ *  - Permissions-Policy: restricción de características del navegador
+ *  - Cache-Control: no-store               (para respuestas autenticadas)
  */
 @Configuration
 @EnableWebSecurity
@@ -39,6 +47,17 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            // --- Security headers (OWASP A05, A06) ---
+            .headers(headers -> {
+                headers.contentTypeOptions(Customizer.withDefaults());
+                headers.frameOptions(frame -> frame.deny());
+                headers.xssProtection(xss -> xss.disable());
+                headers.referrerPolicy(rp -> rp.policy(
+                    ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                headers.permissionsPolicy(pp -> pp.policy(
+                    "camera=(), microphone=(), geolocation=(), payment=()"));
+                headers.cacheControl(Customizer.withDefaults());
+            })
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
@@ -46,6 +65,8 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                // Imágenes subidas (almacenamiento local) servidas públicamente.
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             // API stateless: sin token válido la respuesta es 401, nunca redirect

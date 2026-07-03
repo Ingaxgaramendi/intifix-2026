@@ -31,5 +31,11 @@ public interface MensajeRepository extends MongoRepository<MensajeDocument, UUID
      */
     List<MensajeDocument> findByIdConversacionAndIdEmisorNotAndEstadoNot(UUID idConversacion, UUID idEmisor, EstadoMensaje estado);
 
+    /**
+     * Mensajes recibidos por un usuario que siguen en un estado concreto (p. ej.
+     * ENVIADO) para promoverlos a RECIBIDO ("entregado", doble check).
+     */
+    List<MensajeDocument> findByIdConversacionAndIdEmisorNotAndEstado(UUID idConversacion, UUID idEmisor, EstadoMensaje estado);
+
     void deleteByIdConversacion(UUID idConversacion);
 }

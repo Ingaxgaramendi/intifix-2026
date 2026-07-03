@@ -19,14 +19,22 @@ import java.util.List;
 public interface TecnicoMapper {
 
     @Mapping(target = "creadoEn", ignore = true)
+    @Mapping(target = "fotoPerfilUrl", ignore = true)
+    @Mapping(target = "descripcion", ignore = true)
+    @Mapping(target = "telefonoContacto", ignore = true)
     PerfilTecnico toEntity(CrearTecnicoRequest request);
 
     @Mapping(target = "idUsuario", ignore = true)
     @Mapping(target = "creadoEn", ignore = true)
     void updateEntityFromDto(ActualizarTecnicoRequest request, @MappingTarget PerfilTecnico entity);
 
+    @Mapping(target = "estadoUsuario", ignore = true)
     TecnicoResponse toResponse(PerfilTecnico entity);
 
+    @Mapping(target = "horarios", ignore = true)
+    @Mapping(target = "especialidades", ignore = true)
+    @Mapping(target = "reputacion", ignore = true)
+    @Mapping(target = "estadoUsuario", ignore = true)
     TecnicoDetalleResponse toDetalleResponse(PerfilTecnico entity);
 
     List<TecnicoResponse> toResponseList(List<PerfilTecnico> entities);

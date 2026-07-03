@@ -42,13 +42,17 @@ public class ConversacionDocument {
     @Id
     private UUID id;
 
-    // Una sola conversación por servicio (cliente <-> técnico). Evita duplicados.
-    @Indexed(unique = true, name = "uk_conversacion_servicio")
+    // Una sola conversación por servicio (cliente <-> técnico). Sparse: no indexa nulos
+    // (conversaciones de consulta sin servicio vinculado).
+    @Indexed(unique = true, sparse = true, name = "uk_conversacion_servicio")
     private UUID idServicio;
 
     private UUID idCliente;
 
     private UUID idTecnico;
+
+    @Builder.Default
+    private TipoConversacion tipo = TipoConversacion.SERVICIO;
 
     @Builder.Default
     private EstadoConversacion estado = EstadoConversacion.ACTIVA;

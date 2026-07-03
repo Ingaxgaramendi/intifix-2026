@@ -18,14 +18,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/payments/invoices")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Facturas", description = "API para gestión de facturas electrónicas (solo ADMIN)")
+@PreAuthorize("isAuthenticated()")
+@Tag(name = "Facturas", description = "API para gestión de facturas electrónicas")
 public class FacturaController {
 
     private final FacturaService facturaService;
 
     @PostMapping
-    @Operation(summary = "Crear factura", description = "Crea una nueva factura electrónica")
+    @Operation(summary = "Crear factura", description = "Crea el comprobante del pago (dueño del servicio o ADMIN)")
     public ResponseEntity<ApiResponse<FacturaResponse>> crearFactura(@Valid @RequestBody CrearFacturaRequest request) {
         FacturaResponse response = facturaService.crearFactura(request);
         return ResponseEntity.ok(ApiResponse.<FacturaResponse>builder()
@@ -36,6 +36,7 @@ public class FacturaController {
     }
 
     @GetMapping("/{idFactura}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Obtener factura por ID", description = "Obtiene una factura por su ID")
     public ResponseEntity<ApiResponse<FacturaResponse>> obtenerFacturaPorId(@PathVariable UUID idFactura) {
         FacturaResponse response = facturaService.obtenerFacturaPorId(idFactura);
@@ -56,6 +57,7 @@ public class FacturaController {
     }
 
     @GetMapping("/codigo/{codigoComprobante}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Obtener factura por código", description = "Obtiene una factura por su código de comprobante")
     public ResponseEntity<ApiResponse<FacturaResponse>> obtenerFacturaPorCodigo(@PathVariable String codigoComprobante) {
         FacturaResponse response = facturaService.obtenerFacturaPorCodigo(codigoComprobante);
@@ -66,6 +68,7 @@ public class FacturaController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar facturas", description = "Lista todas las facturas del sistema")
     public ResponseEntity<ApiResponse<List<FacturaResponse>>> listarFacturas() {
         List<FacturaResponse> response = facturaService.listarFacturas();
@@ -76,6 +79,7 @@ public class FacturaController {
     }
 
     @GetMapping("/estado/{estadoFiscal}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar facturas por estado fiscal", description = "Lista las facturas filtradas por estado fiscal")
     public ResponseEntity<ApiResponse<List<FacturaResponse>>> listarFacturasPorEstado(@PathVariable String estadoFiscal) {
         List<FacturaResponse> response = facturaService.listarFacturasPorEstado(estadoFiscal);

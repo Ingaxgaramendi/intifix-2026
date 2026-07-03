@@ -17,16 +17,15 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface ClienteMapper {
 
     @Mapping(target = "creadoEn", ignore = true)
+    @Mapping(target = "idUbicacion", ignore = true)
     PerfilCliente toEntity(CrearClienteRequest request);
 
-    /**
-     * Semántica PATCH: los campos null del request no tocan la entidad
-     * (NullValuePropertyMappingStrategy.IGNORE a nivel de mapper).
-     */
     @Mapping(target = "idUsuario", ignore = true)
     @Mapping(target = "creadoEn", ignore = true)
+    @Mapping(target = "idUbicacion", ignore = true)
     void updateEntityFromDto(ActualizarClienteRequest request, @MappingTarget PerfilCliente entity);
 
+    @Mapping(target = "estadoUsuario", ignore = true)
     ClienteResponse toResponse(PerfilCliente entity);
 
     @Mapping(target = "tieneDniRuc", expression = "java(entity.getDniRuc() != null && !entity.getDniRuc().isBlank())")

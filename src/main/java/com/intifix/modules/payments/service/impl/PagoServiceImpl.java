@@ -1,14 +1,15 @@
 package com.intifix.modules.payments.service.impl;
 
+import com.intifix.modules.payments.dto.request.CrearFacturaRequest;
 import com.intifix.modules.payments.dto.request.CrearPagoRequest;
 import com.intifix.modules.payments.dto.request.ProcesarPagoRequest;
 import com.intifix.modules.payments.dto.request.ReembolsarPagoRequest;
+import com.intifix.modules.payments.entity.TipoComprobante;
 import com.intifix.modules.payments.dto.response.PagoDetalleResponse;
 import com.intifix.modules.payments.dto.response.PagoResponse;
 import com.intifix.modules.payments.dto.response.ResumenPagoResponse;
 import com.intifix.modules.payments.entity.EstadoPago;
 import com.intifix.modules.payments.entity.Pago;
-import com.intifix.modules.payments.event.FacturaEmitidaEvent;
 import com.intifix.modules.payments.event.PagoCreadoEvent;
 import com.intifix.modules.payments.event.PagoConfirmadoEvent;
 import com.intifix.modules.payments.event.PagoFallidoEvent;
@@ -267,10 +268,15 @@ public class PagoServiceImpl implements PagoService {
     @Override
     @Transactional(readOnly = true)
     public PagoDetalleResponse obtenerPagoPorServicio(UUID idServicio) {
-        Pago pago = pagoRepository.findByIdServicio(idServicio)
-                .orElseThrow(() -> new PagoNoEncontradoException("No existe pago para el servicio: " + idServicio));
-        verificarAccesoPago(pago);
-        return construirPagoDetalleResponse(pago);
+        // "Aún no hay pago" es un estado normal (el cliente todavía no paga):
+        // devolvemos null en vez de lanzar error, para que el checkout muestre
+        // el formulario de pago en lugar de un toast de error.
+        return pagoRepository.findByIdServicio(idServicio)
+                .map(pago -> {
+                    verificarAccesoPago(pago);
+                    return construirPagoDetalleResponse(pago);
+                })
+                .orElse(null);
     }
 
     @Override
@@ -391,16 +397,12 @@ public class PagoServiceImpl implements PagoService {
 
     private void generarFacturaAutomatica(Pago pago) {
         try {
-            eventPublisher.publishEvent(new FacturaEmitidaEvent(
-                    this,
-                    null,
-                    pago.getIdPago(),
-                    pago.getIdServicio(),
-                    null,
-                    com.intifix.modules.payments.entity.TipoComprobante.BOLETA,
-                    pago.getMontoTotal(),
-                    pago.getFechaPago()
-            ));
+            // Emite y PERSISTE la boleta del pago (el propio crearFactura publica el
+            // FacturaEmitidaEvent). Si ya existe, no se duplica.
+            facturaService.crearFactura(CrearFacturaRequest.builder()
+                    .idPago(pago.getIdPago())
+                    .tipo(TipoComprobante.BOLETA)
+                    .build());
         } catch (Exception e) {
             log.error("Error al generar factura automática para pago: {}", pago.getIdPago(), e);
         }

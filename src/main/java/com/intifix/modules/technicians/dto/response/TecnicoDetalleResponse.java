@@ -1,5 +1,6 @@
 package com.intifix.modules.technicians.dto.response;
 
+import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.technicians.enums.DisponibilidadTecnico;
 import com.intifix.modules.technicians.enums.EstadoAprobacionTecnico;
 import lombok.AllArgsConstructor;
@@ -25,7 +26,10 @@ public class TecnicoDetalleResponse {
     private EstadoAprobacionTecnico estadoAprobacion;
     private DisponibilidadTecnico disponibilidad;
     private BigDecimal tarifaBase;
+    private String fotoPerfilUrl;
     private UUID idUbicacion;
+    private String descripcion;
+    private String telefonoContacto;
     private String dniFrontalUrl;
     private String dniTraseroUrl;
     private String antecedentePenalUrl;
@@ -34,4 +38,5 @@ public class TecnicoDetalleResponse {
     private List<HorarioResponse> horarios;
     private List<EspecialidadResponse> especialidades;
     private ReputacionResponse reputacion;
+    private EstadoUsuario estadoUsuario;
 }

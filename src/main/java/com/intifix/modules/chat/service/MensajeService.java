@@ -24,5 +24,12 @@ public interface MensajeService {
      */
     long marcarLeida(UUID idConversacion);
 
+    /**
+     * Marca como ENTREGADOS (RECIBIDO) los mensajes que el usuario actual recibió
+     * en la conversación y que aún estaban en ENVIADO. No toca el documento de
+     * conversación (sin riesgo de optimistic locking). Devuelve cuántos marcó.
+     */
+    long marcarRecibida(UUID idConversacion);
+
     long contarNoLeidos(UUID idConversacion);
 }

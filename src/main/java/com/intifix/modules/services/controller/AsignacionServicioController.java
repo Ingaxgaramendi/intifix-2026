@@ -12,6 +12,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -121,9 +125,10 @@ public class AsignacionServicioController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Asignaciones del técnico obtenidas exitosamente"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado")
     })
-    public ResponseEntity<ApiResponse<List<AsignacionServicioResponse>>> obtenerAsignacionesPorTecnico(
-            @Parameter(description = "ID del técnico") @PathVariable UUID idUsuarioTecnico) {
-        List<AsignacionServicioResponse> response = asignacionServicioService.obtenerAsignacionesPorTecnico(idUsuarioTecnico);
+    public ResponseEntity<ApiResponse<Page<AsignacionServicioResponse>>> obtenerAsignacionesPorTecnico(
+            @Parameter(description = "ID del técnico") @PathVariable UUID idUsuarioTecnico,
+            @PageableDefault(size = 12, sort = "fechaAsignacion", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<AsignacionServicioResponse> response = asignacionServicioService.obtenerAsignacionesPorTecnico(idUsuarioTecnico, pageable);
         return ResponseEntity.ok(ApiResponse.success("Asignaciones del técnico obtenidas exitosamente", response));
     }
 
