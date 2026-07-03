@@ -27,6 +27,9 @@ public class GeolocationGatewayImpl implements GeolocationGateway {
 
     private final JdbcTemplate jdbcTemplate;
 
+    private static final String COL_LATITUD = "latitud";
+    private static final String COL_LONGITUD = "longitud";
+
     private static final String SQL_EXISTS_LOCATION = """
         SELECT COUNT(*) FROM ubicaciones WHERE id_ubicacion = ?
         """;
@@ -78,14 +81,14 @@ public class GeolocationGatewayImpl implements GeolocationGateway {
             // Get coordinates for origin
             Double[] origenCoords = jdbcTemplate.queryForObject(
                 SQL_GET_LOCATION_COORDS,
-                (rs, rowNum) -> new Double[]{rs.getDouble("latitud"), rs.getDouble("longitud")},
+                (rs, rowNum) -> new Double[]{rs.getDouble(COL_LATITUD), rs.getDouble(COL_LONGITUD)},
                 idUbicacionOrigen
             );
 
             // Get coordinates for destination
             Double[] destinoCoords = jdbcTemplate.queryForObject(
                 SQL_GET_LOCATION_COORDS,
-                (rs, rowNum) -> new Double[]{rs.getDouble("latitud"), rs.getDouble("longitud")},
+                (rs, rowNum) -> new Double[]{rs.getDouble(COL_LATITUD), rs.getDouble(COL_LONGITUD)},
                 idUbicacionDestino
             );
 
@@ -130,7 +133,7 @@ public class GeolocationGatewayImpl implements GeolocationGateway {
             // Get coordinates for the location
             Double[] coords = jdbcTemplate.queryForObject(
                 SQL_GET_LOCATION_COORDS,
-                (rs, rowNum) -> new Double[]{rs.getDouble("latitud"), rs.getDouble("longitud")},
+                (rs, rowNum) -> new Double[]{rs.getDouble(COL_LATITUD), rs.getDouble(COL_LONGITUD)},
                 idUbicacion
             );
 

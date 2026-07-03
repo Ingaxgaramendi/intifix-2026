@@ -46,7 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Auditoría (Admin)", description = "Consulta de la traza de auditoría y observabilidad. Requiere rol ADMIN.")
 public class AuditAdminController {
 
-    private static final String MSG_LOGS_OBTENIDOS = MSG_LOGS_OBTENIDOS;
+    private static final String MSG_LOGS_OBTENIDOS = "Logs obtenidos";
 
     private final AuditEventService auditEventService;
     private final SecurityEventService securityEventService;

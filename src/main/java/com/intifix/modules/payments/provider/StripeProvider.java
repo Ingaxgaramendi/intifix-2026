@@ -12,9 +12,9 @@ import java.util.UUID;
 @Component
 public class StripeProvider implements PaymentProvider {
 
-    private static final String PROVIDER_NAME = PROVIDER_NAME;
-    private static final String KEY_PROVIDER = KEY_PROVIDER;
-    private static final String KEY_TRANSACTION_ID = KEY_TRANSACTION_ID;
+    private static final String PROVIDER_NAME = "Stripe";
+    private static final String KEY_PROVIDER = "provider";
+    private static final String KEY_TRANSACTION_ID = "transaction_id";
 
     @Override
     public PaymentResult procesarPago(PaymentRequest request) {

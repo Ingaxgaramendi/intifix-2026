@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
 
-    private static final String MSG_HORARIO_NO_ENCONTRADO = MSG_HORARIO_NO_ENCONTRADO;
+    private static final String MSG_HORARIO_NO_ENCONTRADO = "Horario no encontrado con id: ";
 
     private final HorarioTecnicoRepository horarioTecnicoRepository;
     private final PerfilTecnicoRepository perfilTecnicoRepository;

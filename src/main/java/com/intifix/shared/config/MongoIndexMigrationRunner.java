@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 public class MongoIndexMigrationRunner implements ApplicationRunner {
 
-    private static final String IDX_UK_CONVERSACION_SERVICIO = IDX_UK_CONVERSACION_SERVICIO;
+    private static final String IDX_UK_CONVERSACION_SERVICIO = "uk_conversacion_servicio";
 
     private final MongoTemplate mongoTemplate;
 

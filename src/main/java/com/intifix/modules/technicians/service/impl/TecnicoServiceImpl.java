@@ -125,13 +125,11 @@ public class TecnicoServiceImpl implements TecnicoService {
                 return TecnicoNoEncontradoException.byIdUsuario(idUsuario);
             });
 
-        if (request.getDniRuc() != null && !request.getDniRuc().isBlank()) {
-            if (!request.getDniRuc().equals(perfilTecnico.getDniRuc())) {
-                if (perfilTecnicoRepository.existsByDniRuc(request.getDniRuc())) {
-                    log.warn("Intento de actualizar con DNI/RUC duplicado: {}", request.getDniRuc());
-                    throw DniDuplicadoException.byDniRuc(request.getDniRuc());
-                }
-            }
+        if (request.getDniRuc() != null && !request.getDniRuc().isBlank()
+                && !request.getDniRuc().equals(perfilTecnico.getDniRuc())
+                && perfilTecnicoRepository.existsByDniRuc(request.getDniRuc())) {
+            log.warn("Intento de actualizar con DNI/RUC duplicado: {}", request.getDniRuc());
+            throw DniDuplicadoException.byDniRuc(request.getDniRuc());
         }
 
         if (request.getIdUbicacion() != null && !request.getIdUbicacion().equals(perfilTecnico.getIdUbicacion())) {
