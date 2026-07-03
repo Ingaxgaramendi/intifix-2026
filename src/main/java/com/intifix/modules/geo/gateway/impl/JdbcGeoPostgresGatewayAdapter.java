@@ -22,6 +22,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
 
+    private static final String COL_ID_UBICACION = "id_ubicacion";
+    private static final String COL_LATITUD = "latitud";
+    private static final String COL_LONGITUD = "longitud";
+
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -43,7 +47,7 @@ public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 RETURNING id_ubicacion
                 """,
-                (rs, n) -> rs.getObject("id_ubicacion", UUID.class),
+                (rs, n) -> rs.getObject(COL_ID_UBICACION, UUID.class),
                 d.departamento(), d.provincia(), d.distrito(), d.direccionTexto(),
                 d.referencia(), d.latitud(), d.longitud());
     }
@@ -78,14 +82,14 @@ public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
                     WHERE pt.id_usuario = ?
                     """,
                     (rs, n) -> new UbicacionPublica(
-                            rs.getObject("id_ubicacion", UUID.class),
+                            rs.getObject(COL_ID_UBICACION, UUID.class),
                             rs.getString("departamento"),
                             rs.getString("provincia"),
                             rs.getString("distrito"),
                             rs.getString("direccion_texto"),
                             rs.getString("referencia"),
-                            rs.getBigDecimal("latitud"),
-                            rs.getBigDecimal("longitud")),
+                            rs.getBigDecimal(COL_LATITUD),
+                            rs.getBigDecimal(COL_LONGITUD)),
                     idTecnico));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -105,14 +109,14 @@ public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
                     WHERE id_ubicacion = ?
                     """,
                     (rs, n) -> new UbicacionPublica(
-                            rs.getObject("id_ubicacion", UUID.class),
+                            rs.getObject(COL_ID_UBICACION, UUID.class),
                             rs.getString("departamento"),
                             rs.getString("provincia"),
                             rs.getString("distrito"),
                             rs.getString("direccion_texto"),
                             rs.getString("referencia"),
-                            rs.getBigDecimal("latitud"),
-                            rs.getBigDecimal("longitud")),
+                            rs.getBigDecimal(COL_LATITUD),
+                            rs.getBigDecimal(COL_LONGITUD)),
                     idUbicacion));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -157,8 +161,8 @@ public class JdbcGeoPostgresGatewayAdapter implements GeoPostgresGateway {
                         rs.getObject("id_usuario", UUID.class),
                         rs.getString("nombres_completos"),
                         rs.getBigDecimal("tarifa_base"),
-                        rs.getDouble("latitud"),
-                        rs.getDouble("longitud")),
+                        rs.getDouble(COL_LATITUD),
+                        rs.getDouble(COL_LONGITUD)),
                 params);
     }
 

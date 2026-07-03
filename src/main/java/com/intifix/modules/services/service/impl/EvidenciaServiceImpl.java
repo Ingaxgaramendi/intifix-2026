@@ -38,7 +38,7 @@ public class EvidenciaServiceImpl implements EvidenciaService {
     public EvidenciaServicioResponse crearEvidencia(CrearEvidenciaRequest request) {
         log.info("Creando evidencia para servicio: {}", request.getIdServicio());
 
-        Servicio servicio = servicioRepository.findById(request.getIdServicio())
+        servicioRepository.findById(request.getIdServicio())
             .orElseThrow(() -> {
                 log.warn("Servicio no encontrado: {}", request.getIdServicio());
                 return ServicioNoEncontradoException.byId(request.getIdServicio());

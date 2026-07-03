@@ -1,4 +1,4 @@
-package com.intifix.modules.technicians.service.impl;
+﻿package com.intifix.modules.technicians.service.impl;
 
 import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.auth.entity.UsuarioAuth;
@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TecnicoServiceImpl implements TecnicoService {
 
+    private static final String MSG_UBICACION_NO_VALIDA = "Ubicación no válida para asignación a técnico: {}";
+
     private final PerfilTecnicoRepository perfilTecnicoRepository;
     private final TecnicoMapper tecnicoMapper;
     private final GeolocationClient geolocationClient;
@@ -66,7 +68,7 @@ public class TecnicoServiceImpl implements TecnicoService {
         }
 
         if (!geolocationClient.canAssignToTechnician(request.getIdUbicacion())) {
-            log.warn("Ubicación no válida para asignación a técnico: {}", request.getIdUbicacion());
+            log.warn(MSG_UBICACION_NO_VALIDA, request.getIdUbicacion());
             throw UbicacionInvalidaException.notValidForAssignment(request.getIdUbicacion());
         }
 
@@ -139,7 +141,7 @@ public class TecnicoServiceImpl implements TecnicoService {
             }
 
             if (!geolocationClient.canAssignToTechnician(request.getIdUbicacion())) {
-                log.warn("Ubicación no válida para asignación a técnico: {}", request.getIdUbicacion());
+                log.warn(MSG_UBICACION_NO_VALIDA, request.getIdUbicacion());
                 throw UbicacionInvalidaException.notValidForAssignment(request.getIdUbicacion());
             }
             log.info("Cambiando ubicación del técnico {} de {} a {}", 
@@ -363,7 +365,7 @@ public class TecnicoServiceImpl implements TecnicoService {
         }
 
         if (!geolocationClient.canAssignToTechnician(idUbicacion)) {
-            log.warn("Ubicación no válida para asignación a técnico: {}", idUbicacion);
+            log.warn(MSG_UBICACION_NO_VALIDA, idUbicacion);
             throw UbicacionInvalidaException.notValidForAssignment(idUbicacion);
         }
 

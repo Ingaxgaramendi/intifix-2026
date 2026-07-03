@@ -21,6 +21,8 @@ import java.util.List;
 @Slf4j
 public class MongoIndexMigrationRunner implements ApplicationRunner {
 
+    private static final String IDX_UK_CONVERSACION_SERVICIO = IDX_UK_CONVERSACION_SERVICIO;
+
     private final MongoTemplate mongoTemplate;
 
     @Override
@@ -34,17 +36,17 @@ public class MongoIndexMigrationRunner implements ApplicationRunner {
         // Si el índice uk_conversacion_servicio existe sin sparse=true, dropparlo.
         List<IndexInfo> existing = mongoTemplate.indexOps(col).getIndexInfo();
         boolean needsDrop = existing.stream()
-            .anyMatch(idx -> "uk_conversacion_servicio".equals(idx.getName()) && !idx.isSparse());
+            .anyMatch(idx -> IDX_UK_CONVERSACION_SERVICIO.equals(idx.getName()) && !idx.isSparse());
 
         if (needsDrop) {
             log.info("[Mongo migration] Dropping non-sparse index 'uk_conversacion_servicio' on '{}'", col);
-            mongoTemplate.indexOps(col).dropIndex("uk_conversacion_servicio");
+            mongoTemplate.indexOps(col).dropIndex(IDX_UK_CONVERSACION_SERVICIO);
         }
 
         // Crear el índice correcto: único + sparse (idempotente, no-op si ya existe igual)
         mongoTemplate.indexOps(col).ensureIndex(
             new Index("idServicio", Sort.Direction.ASC)
-                .named("uk_conversacion_servicio")
+                .named(IDX_UK_CONVERSACION_SERVICIO)
                 .unique()
                 .sparse()
         );

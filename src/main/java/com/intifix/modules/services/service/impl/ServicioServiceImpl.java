@@ -1,4 +1,4 @@
-package com.intifix.modules.services.service.impl;
+﻿package com.intifix.modules.services.service.impl;
 
 import com.intifix.modules.services.dto.request.ActualizarServicioRequest;
 import com.intifix.modules.services.dto.request.CambiarEstadoServicioRequest;
@@ -51,7 +51,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Service implementation for Servicio operations.
@@ -66,6 +65,7 @@ public class ServicioServiceImpl implements ServicioService {
 
     private static final String ROL_ADMIN = "ADMIN";
     private static final String ROL_TECNICO = "TECNICO";
+    private static final String MSG_SERVICIO_NO_ENCONTRADO = "Servicio no encontrado: {}";
 
     private final ServicioRepository servicioRepository;
     private final HistorialServicioRepository historialServicioRepository;
@@ -182,7 +182,7 @@ public class ServicioServiceImpl implements ServicioService {
 
         Servicio servicio = servicioRepository.findById(idServicio)
             .orElseThrow(() -> {
-                log.warn("Servicio no encontrado: {}", idServicio);
+                log.warn(MSG_SERVICIO_NO_ENCONTRADO, idServicio);
                 return ServicioNoEncontradoException.byId(idServicio);
             });
 
@@ -207,7 +207,7 @@ public class ServicioServiceImpl implements ServicioService {
 
         Servicio servicio = servicioRepository.findById(idServicio)
             .orElseThrow(() -> {
-                log.warn("Servicio no encontrado: {}", idServicio);
+                log.warn(MSG_SERVICIO_NO_ENCONTRADO, idServicio);
                 return ServicioNoEncontradoException.byId(idServicio);
             });
 
@@ -259,7 +259,7 @@ public class ServicioServiceImpl implements ServicioService {
 
         Servicio servicio = servicioRepository.findById(idServicio)
             .orElseThrow(() -> {
-                log.warn("Servicio no encontrado: {}", idServicio);
+                log.warn(MSG_SERVICIO_NO_ENCONTRADO, idServicio);
                 return ServicioNoEncontradoException.byId(idServicio);
             });
 
@@ -288,7 +288,7 @@ public class ServicioServiceImpl implements ServicioService {
 
         Servicio servicio = servicioRepository.findById(idServicio)
             .orElseThrow(() -> {
-                log.warn("Servicio no encontrado: {}", idServicio);
+                log.warn(MSG_SERVICIO_NO_ENCONTRADO, idServicio);
                 return ServicioNoEncontradoException.byId(idServicio);
             });
 
@@ -304,7 +304,7 @@ public class ServicioServiceImpl implements ServicioService {
 
         Servicio servicio = servicioRepository.findById(idServicio)
             .orElseThrow(() -> {
-                log.warn("Servicio no encontrado: {}", idServicio);
+                log.warn(MSG_SERVICIO_NO_ENCONTRADO, idServicio);
                 return ServicioNoEncontradoException.byId(idServicio);
             });
 
@@ -317,12 +317,12 @@ public class ServicioServiceImpl implements ServicioService {
             .findByIdServicio(idServicio, Pageable.unpaged())
             .getContent().stream()
             .map(cotizacionMapper::toResponse)
-            .collect(Collectors.toList());
+            .toList();
 
         List<EvidenciaServicioResponse> evidencias = evidenciaServicioRepository
             .findByIdServicio(idServicio).stream()
             .map(evidenciaMapper::toResponse)
-            .collect(Collectors.toList());
+            .toList();
 
         CalificacionResponse calificacion = calificacionRepository
             .findByIdServicio(idServicio)

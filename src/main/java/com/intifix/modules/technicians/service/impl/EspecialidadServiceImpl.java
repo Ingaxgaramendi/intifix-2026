@@ -60,13 +60,11 @@ public class EspecialidadServiceImpl implements EspecialidadService {
                 return EspecialidadNoEncontradaException.byIdEspecialidad(idEspecialidad);
             });
 
-        if (request.getNombre() != null && !request.getNombre().isBlank()) {
-            if (!request.getNombre().equals(especialidad.getNombre())) {
-                if (especialidadRepository.existsByNombre(request.getNombre())) {
-                    log.warn("Intento de actualizar con nombre duplicado: {}", request.getNombre());
-                    throw new TecnicoNoEncontradoException("Ya existe una especialidad con el nombre: " + request.getNombre());
-                }
-            }
+        if (request.getNombre() != null && !request.getNombre().isBlank()
+                && !request.getNombre().equals(especialidad.getNombre())
+                && especialidadRepository.existsByNombre(request.getNombre())) {
+            log.warn("Intento de actualizar con nombre duplicado: {}", request.getNombre());
+            throw new TecnicoNoEncontradoException("Ya existe una especialidad con el nombre: " + request.getNombre());
         }
 
         especialidadMapper.updateEntityFromDto(request, especialidad);

@@ -24,6 +24,8 @@ import java.util.UUID;
 @Slf4j
 public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
 
+    private static final String MSG_HORARIO_NO_ENCONTRADO = MSG_HORARIO_NO_ENCONTRADO;
+
     private final HorarioTecnicoRepository horarioTecnicoRepository;
     private final PerfilTecnicoRepository perfilTecnicoRepository;
     private final HorarioMapper horarioMapper;
@@ -65,7 +67,7 @@ public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
         HorarioTecnico horarioTecnico = horarioTecnicoRepository.findByIdHorario(idHorario)
             .orElseThrow(() -> {
                 log.warn("Horario no encontrado para actualización: {}", idHorario);
-                return new TecnicoNoEncontradoException("Horario no encontrado con id: " + idHorario);
+                return new TecnicoNoEncontradoException(MSG_HORARIO_NO_ENCONTRADO + idHorario);
             });
 
         if (request.getDiaSemana() != null && request.getHoraInicio() != null && request.getHoraFin() != null) {
@@ -93,7 +95,7 @@ public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
         HorarioTecnico horarioTecnico = horarioTecnicoRepository.findByIdHorario(idHorario)
             .orElseThrow(() -> {
                 log.warn("Horario no encontrado para eliminación: {}", idHorario);
-                return new TecnicoNoEncontradoException("Horario no encontrado con id: " + idHorario);
+                return new TecnicoNoEncontradoException(MSG_HORARIO_NO_ENCONTRADO + idHorario);
             });
 
         horarioTecnicoRepository.delete(horarioTecnico);
@@ -123,7 +125,7 @@ public class HorarioTecnicoServiceImpl implements HorarioTecnicoService {
         HorarioTecnico horarioTecnico = horarioTecnicoRepository.findByIdHorario(idHorario)
             .orElseThrow(() -> {
                 log.warn("Horario no encontrado: {}", idHorario);
-                return new TecnicoNoEncontradoException("Horario no encontrado con id: " + idHorario);
+                return new TecnicoNoEncontradoException(MSG_HORARIO_NO_ENCONTRADO + idHorario);
             });
 
         return horarioMapper.toResponse(horarioTecnico);

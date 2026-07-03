@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class ServicioFinalizadoException extends ServicioException {
 
+    private static final String PREFIJO = "El servicio con idServicio: ";
+
     public ServicioFinalizadoException(String message) {
         super(message, "SERVICIO_FINALIZADO");
     }
@@ -23,19 +25,19 @@ public class ServicioFinalizadoException extends ServicioException {
 
     public static ServicioFinalizadoException byId(UUID idServicio) {
         return new ServicioFinalizadoException(
-            "El servicio con idServicio: " + idServicio + " ya está finalizado y no puede ser modificado"
+            PREFIJO + idServicio + " ya está finalizado y no puede ser modificado"
         );
     }
 
     public static ServicioFinalizadoException cannotAssign(UUID idServicio) {
         return new ServicioFinalizadoException(
-            "El servicio con idServicio: " + idServicio + " está finalizado. No se pueden asignar técnicos."
+            PREFIJO + idServicio + " está finalizado. No se pueden asignar técnicos."
         );
     }
 
     public static ServicioFinalizadoException cannotQuote(UUID idServicio) {
         return new ServicioFinalizadoException(
-            "El servicio con idServicio: " + idServicio + " está finalizado. No se pueden enviar cotizaciones."
+            PREFIJO + idServicio + " está finalizado. No se pueden enviar cotizaciones."
         );
     }
 }

@@ -1,4 +1,4 @@
-package com.intifix.modules.payments.service.impl;
+﻿package com.intifix.modules.payments.service.impl;
 
 import com.intifix.modules.payments.dto.request.CrearFacturaRequest;
 import com.intifix.modules.payments.dto.request.CrearPagoRequest;
@@ -47,6 +47,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PagoServiceImpl implements PagoService {
 
+    private static final String MSG_SERVICIO_NO_ENCONTRADO = "Servicio no encontrado: ";
+
     private final PagoRepository pagoRepository;
     private final PagoMapper pagoMapper;
     private final ServiceGateway serviceGateway;
@@ -61,7 +63,7 @@ public class PagoServiceImpl implements PagoService {
         log.info("Creando pago para servicio: {} por cliente: {}", request.getIdServicio(), idCliente);
 
         ServiceGateway.ServiceInfo servicio = serviceGateway.findById(request.getIdServicio())
-                .orElseThrow(() -> new PagoNoEncontradoException("Servicio no encontrado: " + request.getIdServicio()));
+                .orElseThrow(() -> new PagoNoEncontradoException(MSG_SERVICIO_NO_ENCONTRADO + request.getIdServicio()));
 
         // Ownership: solo el cliente dueño del servicio puede pagarlo.
         if (!idCliente.equals(servicio.idCliente())) {
@@ -169,7 +171,7 @@ public class PagoServiceImpl implements PagoService {
                     ZonedDateTime.now()
             ));
 
-            throw new RuntimeException("Error al procesar pago: " + resultado.mensaje());
+            throw new IllegalStateException("Error al procesar pago: " + resultado.mensaje());
         }
     }
 
@@ -252,7 +254,7 @@ public class PagoServiceImpl implements PagoService {
             log.info("Pago reembolsado exitosamente: {}", pagoActualizado.getIdPago());
             return pagoMapper.toResponse(pagoActualizado);
         } else {
-            throw new RuntimeException("Error al reembolsar pago: " + resultado.mensaje());
+            throw new IllegalStateException("Error al reembolsar pago: " + resultado.mensaje());
         }
     }
 
@@ -356,7 +358,7 @@ public class PagoServiceImpl implements PagoService {
             return;
         }
         ServiceGateway.ServiceInfo servicio = serviceGateway.findById(pago.getIdServicio())
-                .orElseThrow(() -> new PagoNoEncontradoException("Servicio no encontrado: " + pago.getIdServicio()));
+                .orElseThrow(() -> new PagoNoEncontradoException(MSG_SERVICIO_NO_ENCONTRADO + pago.getIdServicio()));
         if (!SecurityUtils.currentUserId().equals(servicio.idCliente())) {
             throw new AccessDeniedException("Solo el cliente dueño del servicio puede operar este pago");
         }
@@ -371,7 +373,7 @@ public class PagoServiceImpl implements PagoService {
         }
         UUID userId = SecurityUtils.currentUserId();
         ServiceGateway.ServiceInfo servicio = serviceGateway.findById(pago.getIdServicio())
-                .orElseThrow(() -> new PagoNoEncontradoException("Servicio no encontrado: " + pago.getIdServicio()));
+                .orElseThrow(() -> new PagoNoEncontradoException(MSG_SERVICIO_NO_ENCONTRADO + pago.getIdServicio()));
         boolean esParte = userId.equals(servicio.idCliente()) || userId.equals(servicio.idTecnico());
         if (!esParte) {
             throw new AccessDeniedException("No tiene permiso sobre este pago");

@@ -1,4 +1,4 @@
-package com.intifix.modules.services.service.impl;
+﻿package com.intifix.modules.services.service.impl;
 
 import com.intifix.modules.services.dto.request.CrearCotizacionRequest;
 import com.intifix.modules.services.dto.request.ResponderCotizacionRequest;
@@ -42,6 +42,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class CotizacionServiceImpl implements CotizacionService {
+
+    private static final String MSG_COTIZACION_NO_ENCONTRADA = "Cotización no encontrada: {}";
 
     private final CotizacionRepository cotizacionRepository;
     private final ServicioRepository servicioRepository;
@@ -133,7 +135,7 @@ public class CotizacionServiceImpl implements CotizacionService {
 
         Cotizacion cotizacion = cotizacionRepository.findById(idCotizacion)
             .orElseThrow(() -> {
-                log.warn("Cotización no encontrada: {}", idCotizacion);
+                log.warn(MSG_COTIZACION_NO_ENCONTRADA, idCotizacion);
                 return CotizacionNoEncontradaException.byId(idCotizacion);
             });
 
@@ -177,7 +179,7 @@ public class CotizacionServiceImpl implements CotizacionService {
 
         Cotizacion cotizacion = cotizacionRepository.findById(idCotizacion)
             .orElseThrow(() -> {
-                log.warn("Cotización no encontrada: {}", idCotizacion);
+                log.warn(MSG_COTIZACION_NO_ENCONTRADA, idCotizacion);
                 return CotizacionNoEncontradaException.byId(idCotizacion);
             });
 
@@ -197,7 +199,7 @@ public class CotizacionServiceImpl implements CotizacionService {
 
         Cotizacion cotizacion = cotizacionRepository.findById(idCotizacion)
             .orElseThrow(() -> {
-                log.warn("Cotización no encontrada: {}", idCotizacion);
+                log.warn(MSG_COTIZACION_NO_ENCONTRADA, idCotizacion);
                 return CotizacionNoEncontradaException.byId(idCotizacion);
             });
 

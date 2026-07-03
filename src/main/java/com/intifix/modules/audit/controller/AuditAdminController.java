@@ -46,6 +46,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Auditoría (Admin)", description = "Consulta de la traza de auditoría y observabilidad. Requiere rol ADMIN.")
 public class AuditAdminController {
 
+    private static final String MSG_LOGS_OBTENIDOS = MSG_LOGS_OBTENIDOS;
+
     private final AuditEventService auditEventService;
     private final SecurityEventService securityEventService;
     private final ExceptionLogService exceptionLogService;
@@ -97,39 +99,39 @@ public class AuditAdminController {
     @GetMapping("/http-logs")
     @Operation(summary = "Logs HTTP", description = "Una entrada por request HTTP (api_logs, TTL 90 días)")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logs obtenidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = MSG_LOGS_OBTENIDOS),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Requiere rol ADMIN")
     })
     public ResponseEntity<ApiResponse<Page<ApiLogResponse>>> httpLogs(
             @ParameterObject @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success("Logs obtenidos",
+        return ResponseEntity.ok(ApiResponse.success(MSG_LOGS_OBTENIDOS,
                 apiLogService.listar(pageable)));
     }
 
     @GetMapping("/websocket-logs")
     @Operation(summary = "Logs WebSocket", description = "Conexión/desconexión y mensajería en tiempo real (websocket_logs)")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logs obtenidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = MSG_LOGS_OBTENIDOS),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Requiere rol ADMIN")
     })
     public ResponseEntity<ApiResponse<Page<WebSocketLogResponse>>> webSocketLogs(
             @ParameterObject @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success("Logs obtenidos",
+        return ResponseEntity.ok(ApiResponse.success(MSG_LOGS_OBTENIDOS,
                 webSocketLogService.listar(pageable)));
     }
 
     @GetMapping("/geo-logs")
     @Operation(summary = "Logs de geolocalización", description = "Actualizaciones de ubicación y consultas geoespaciales (geo_logs)")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logs obtenidos"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = MSG_LOGS_OBTENIDOS),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Requiere rol ADMIN")
     })
     public ResponseEntity<ApiResponse<Page<GeoLogResponse>>> geoLogs(
             @ParameterObject @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success("Logs obtenidos",
+        return ResponseEntity.ok(ApiResponse.success(MSG_LOGS_OBTENIDOS,
                 geoLogService.listar(pageable)));
     }
 }

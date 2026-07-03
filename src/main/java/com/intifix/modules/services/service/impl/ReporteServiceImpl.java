@@ -1,4 +1,4 @@
-package com.intifix.modules.services.service.impl;
+﻿package com.intifix.modules.services.service.impl;
 
 import com.intifix.modules.services.dto.request.CrearReporteRequest;
 import com.intifix.modules.services.dto.response.ReporteResponse;
@@ -29,6 +29,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class ReporteServiceImpl implements ReporteService {
+
+    private static final String MSG_REPORTE_NO_ENCONTRADO = "Reporte no encontrado: {}";
 
     private final ReporteRepository reporteRepository;
     private final ReporteMapper reporteMapper;
@@ -61,7 +63,7 @@ public class ReporteServiceImpl implements ReporteService {
 
         Reporte reporte = reporteRepository.findById(idReporte)
             .orElseThrow(() -> {
-                log.warn("Reporte no encontrado: {}", idReporte);
+                log.warn(MSG_REPORTE_NO_ENCONTRADO, idReporte);
                 return ReporteNoEncontradoException.byId(idReporte);
             });
 
@@ -83,7 +85,7 @@ public class ReporteServiceImpl implements ReporteService {
 
         Reporte reporte = reporteRepository.findById(idReporte)
             .orElseThrow(() -> {
-                log.warn("Reporte no encontrado: {}", idReporte);
+                log.warn(MSG_REPORTE_NO_ENCONTRADO, idReporte);
                 return ReporteNoEncontradoException.byId(idReporte);
             });
 
@@ -103,7 +105,7 @@ public class ReporteServiceImpl implements ReporteService {
 
         Reporte reporte = reporteRepository.findById(idReporte)
             .orElseThrow(() -> {
-                log.warn("Reporte no encontrado: {}", idReporte);
+                log.warn(MSG_REPORTE_NO_ENCONTRADO, idReporte);
                 return ReporteNoEncontradoException.byId(idReporte);
             });
 

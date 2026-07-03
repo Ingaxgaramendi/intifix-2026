@@ -12,6 +12,10 @@ import java.util.UUID;
 @Component
 public class CulqiProvider implements PaymentProvider {
 
+    private static final String PROVIDER_NAME = PROVIDER_NAME;
+    private static final String KEY_PROVIDER = KEY_PROVIDER;
+    private static final String KEY_TRANSACTION_ID = KEY_TRANSACTION_ID;
+
     @Override
     public PaymentResult procesarPago(PaymentRequest request) {
         log.info("Procesando pago con Culqi para servicio: {}", request.idServicio());
@@ -20,8 +24,8 @@ public class CulqiProvider implements PaymentProvider {
             String transactionId = "CULQI-" + UUID.randomUUID().toString();
             
             Map<String, Object> datosRespuesta = new HashMap<>();
-            datosRespuesta.put("provider", "Culqi");
-            datosRespuesta.put("transaction_id", transactionId);
+            datosRespuesta.put(KEY_PROVIDER, PROVIDER_NAME);
+            datosRespuesta.put(KEY_TRANSACTION_ID, transactionId);
             datosRespuesta.put("monto", request.monto());
             datosRespuesta.put("moneda", "PEN");
             
@@ -49,8 +53,8 @@ public class CulqiProvider implements PaymentProvider {
         log.info("Confirmando pago con Culqi: {}", transactionId);
         
         Map<String, Object> datosRespuesta = new HashMap<>();
-        datosRespuesta.put("provider", "Culqi");
-        datosRespuesta.put("transaction_id", transactionId);
+        datosRespuesta.put(KEY_PROVIDER, PROVIDER_NAME);
+        datosRespuesta.put(KEY_TRANSACTION_ID, transactionId);
         datosRespuesta.put("estado", "confirmado");
         
         return new PaymentResult(
@@ -67,8 +71,8 @@ public class CulqiProvider implements PaymentProvider {
         log.info("Reembolsando pago con Culqi: {}, razon: {}", transactionId, razon);
         
         Map<String, Object> datosRespuesta = new HashMap<>();
-        datosRespuesta.put("provider", "Culqi");
-        datosRespuesta.put("transaction_id", transactionId);
+        datosRespuesta.put(KEY_PROVIDER, PROVIDER_NAME);
+        datosRespuesta.put(KEY_TRANSACTION_ID, transactionId);
         datosRespuesta.put("razon", razon);
         datosRespuesta.put("estado", "reembolsado");
         

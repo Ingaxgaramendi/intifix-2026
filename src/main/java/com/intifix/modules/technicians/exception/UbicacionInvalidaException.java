@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class UbicacionInvalidaException extends TecnicoException {
 
+    private static final String PREFIJO = "La ubicación con idUbicacion: ";
+
     public UbicacionInvalidaException(String message) {
         super(message, "UBICACION_INVALIDA");
     }
@@ -23,25 +25,25 @@ public class UbicacionInvalidaException extends TecnicoException {
 
     public static UbicacionInvalidaException byId(UUID idUbicacion) {
         return new UbicacionInvalidaException(
-            "La ubicación con idUbicacion: " + idUbicacion + " no es válida para asignación a técnico"
+            PREFIJO + idUbicacion + " no es válida para asignación a técnico"
         );
     }
 
     public static UbicacionInvalidaException inactive(UUID idUbicacion) {
         return new UbicacionInvalidaException(
-            "La ubicación con idUbicacion: " + idUbicacion + " no está activa y no puede ser asignada"
+            PREFIJO + idUbicacion + " no está activa y no puede ser asignada"
         );
     }
 
     public static UbicacionInvalidaException outsideServiceArea(UUID idUbicacion) {
         return new UbicacionInvalidaException(
-            "La ubicación con idUbicacion: " + idUbicacion + " está fuera del área de servicio"
+            PREFIJO + idUbicacion + " está fuera del área de servicio"
         );
     }
 
     public static UbicacionInvalidaException notValidForAssignment(UUID idUbicacion) {
         return new UbicacionInvalidaException(
-            "La ubicación con idUbicacion: " + idUbicacion + " no cumple los requisitos para asignación a técnico"
+            PREFIJO + idUbicacion + " no cumple los requisitos para asignación a técnico"
         );
     }
 }

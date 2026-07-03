@@ -1,6 +1,5 @@
 package com.intifix.modules.services.event;
 
-import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
