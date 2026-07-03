@@ -42,3 +42,5 @@ backend-*.log
 
 # Directorio de uploads locales
 uploads/
+sonar-issues.csv 
+sonar-output.txt 
