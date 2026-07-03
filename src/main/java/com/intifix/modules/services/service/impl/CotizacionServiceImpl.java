@@ -1,4 +1,4 @@
-ackage com.intifix.modules.services.service.impl;
+package com.intifix.modules.services.service.impl;
 
 import com.intifix.modules.services.dto.request.CrearCotizacionRequest;
 import com.intifix.modules.services.dto.request.ResponderCotizacionRequest;

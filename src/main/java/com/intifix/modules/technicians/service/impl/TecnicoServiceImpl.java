@@ -1,4 +1,4 @@
-ackage com.intifix.modules.technicians.service.impl;
+package com.intifix.modules.technicians.service.impl;
 
 import com.intifix.modules.auth.entity.EstadoUsuario;
 import com.intifix.modules.auth.entity.UsuarioAuth;

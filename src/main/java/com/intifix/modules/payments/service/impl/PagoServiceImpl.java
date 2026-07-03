@@ -1,4 +1,4 @@
-ackage com.intifix.modules.payments.service.impl;
+package com.intifix.modules.payments.service.impl;
 
 import com.intifix.modules.payments.dto.request.CrearFacturaRequest;
 import com.intifix.modules.payments.dto.request.CrearPagoRequest;
