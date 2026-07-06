@@ -71,14 +71,16 @@ services:
       - key: MAIL_FROM_NAME
         value: INTIFIX
 
-      # ── CORS (actualizar con URLs reales del frontend cuando estén desplegados)
-      - key: CORS_ORIGIN_1
-        value: http://localhost:5173
-      - key: CORS_ORIGIN_2
-        value: http://localhost:5174
-      - key: CORS_ORIGIN_3
-        value: http://localhost:3000
+# CORS (producción)
+- key: CORS_ORIGIN_1
+  value: https://intifix.web.app
+
+- key: CORS_ORIGIN_2
+  value: https://intifix.firebaseapp.com
+
+- key: CORS_ORIGIN_3
+  value: http://localhost:5173
 
       # ── Frontend URL para emails de recuperación de contraseña ─────────
       - key: APP_FRONTEND_URL
-        value: http://localhost:5173
+        value: https://intifix.web.app
