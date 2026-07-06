@@ -9,6 +9,7 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -105,7 +106,7 @@ public class Cotizacion implements Persistable<UUID> {
     protected void onCreate() {
         // Set expiration to 48 hours from now (business logic, cannot be delegated to DB)
         if (fechaExpiracion == null) {
-            fechaExpiracion = ZonedDateTime.now().plusHours(48);
+            fechaExpiracion = ZonedDateTime.now(ZoneId.systemDefault()).plusHours(48);
         }
     }
 }

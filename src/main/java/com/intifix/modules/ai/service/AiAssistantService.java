@@ -1,6 +1,8 @@
 package com.intifix.modules.ai.service;
 
 import com.intifix.modules.ai.dto.ChatRequest;
+import com.intifix.modules.ai.dto.PresupuestoSugeridoRequest;
+import com.intifix.modules.ai.dto.PresupuestoSugeridoResponse;
 import reactor.core.publisher.Flux;
 
 /**
@@ -17,4 +19,9 @@ public interface AiAssistantService {
      * Variante bloqueante: devuelve la respuesta completa.
      */
     String chat(ChatRequest request);
+
+    /**
+     * Estima un rango de presupuesto para el servicio descrito.
+     */
+    PresupuestoSugeridoResponse estimarPresupuesto(PresupuestoSugeridoRequest request);
 }

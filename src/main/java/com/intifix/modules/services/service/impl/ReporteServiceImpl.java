@@ -70,7 +70,7 @@ public class ReporteServiceImpl implements ReporteService {
         reporte.setResolucion(resolucion);
         reporte.setAccionTomada(accionTomada);
         reporte.setEstado(EstadoReporte.RESUELTO);
-        reporte.setFechaResolucion(java.time.ZonedDateTime.now());
+        reporte.setFechaResolucion(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
 
         Reporte actualizado = reporteRepository.save(reporte);
 

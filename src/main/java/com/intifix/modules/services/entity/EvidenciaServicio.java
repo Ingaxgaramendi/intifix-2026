@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -65,7 +66,7 @@ public class EvidenciaServicio {
 
     @Column(name = "fecha_subida", nullable = false)
     @Builder.Default
-    private ZonedDateTime fechaSubida = ZonedDateTime.now();
+    private ZonedDateTime fechaSubida = ZonedDateTime.now(ZoneId.systemDefault());
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadatos", columnDefinition = "JSONB")
@@ -74,7 +75,7 @@ public class EvidenciaServicio {
     @PrePersist
     protected void onCreate() {
         if (fechaSubida == null) {
-            fechaSubida = ZonedDateTime.now();
+            fechaSubida = ZonedDateTime.now(ZoneId.systemDefault());
         }
     }
 }

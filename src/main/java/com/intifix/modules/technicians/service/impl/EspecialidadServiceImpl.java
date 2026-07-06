@@ -1,5 +1,7 @@
 package com.intifix.modules.technicians.service.impl;
 
+import com.intifix.modules.audit.event.CertificadoAprobadoEvent;
+import com.intifix.modules.audit.event.CertificadoRechazadoEvent;
 import com.intifix.modules.technicians.dto.request.ActualizarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.AsignarEspecialidadRequest;
 import com.intifix.modules.technicians.dto.request.CrearEspecialidadRequest;
@@ -7,6 +9,7 @@ import com.intifix.modules.technicians.dto.response.EspecialidadResponse;
 import com.intifix.modules.technicians.dto.response.EspecialidadTecnicoResponse;
 import com.intifix.modules.technicians.entity.Especialidad;
 import com.intifix.modules.technicians.entity.TecnicoEspecialidad;
+import com.intifix.modules.technicians.enums.EstadoCertificado;
 import com.intifix.modules.technicians.exception.EspecialidadNoEncontradaException;
 import com.intifix.modules.technicians.exception.TecnicoNoEncontradoException;
 import com.intifix.modules.technicians.mapper.EspecialidadMapper;
@@ -16,6 +19,7 @@ import com.intifix.modules.technicians.repository.TecnicoEspecialidadRepository;
 import com.intifix.modules.technicians.service.EspecialidadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +35,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
     private final TecnicoEspecialidadRepository tecnicoEspecialidadRepository;
     private final PerfilTecnicoRepository perfilTecnicoRepository;
     private final EspecialidadMapper especialidadMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -201,6 +206,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
                     .nombre(esp.getNombre())
                     .descripcion(esp.getDescripcion())
                     .certificadoUrl(te.getCertificadoUrl())
+                    .estadoCertificado(te.getEstadoCertificado())
                     .build();
             })
             .toList();
@@ -216,8 +222,41 @@ public class EspecialidadServiceImpl implements EspecialidadService {
             .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(idEspecialidad));
 
         asignacion.setCertificadoUrl(certificadoUrl);
+        asignacion.setEstadoCertificado(EstadoCertificado.PENDIENTE);
         tecnicoEspecialidadRepository.save(asignacion);
         log.info("Certificado de especialidad actualizado para técnico {}", idUsuarioTecnico);
+    }
+
+    @Override
+    @Transactional
+    public void aprobarCertificado(UUID idUsuarioTecnico, UUID idEspecialidad) {
+        log.info("Aprobando certificado de especialidad {} para técnico {}", idEspecialidad, idUsuarioTecnico);
+        TecnicoEspecialidad asignacion = tecnicoEspecialidadRepository
+            .findByIdUsuarioTecnicoAndIdEspecialidad(idUsuarioTecnico, idEspecialidad)
+            .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(idEspecialidad));
+        asignacion.setEstadoCertificado(EstadoCertificado.APROBADO);
+        tecnicoEspecialidadRepository.save(asignacion);
+
+        String nombre = especialidadRepository.findByIdEspecialidad(idEspecialidad)
+            .map(Especialidad::getNombre).orElse(idEspecialidad.toString());
+        eventPublisher.publishEvent(new CertificadoAprobadoEvent(idUsuarioTecnico, idEspecialidad, nombre));
+        log.info("Certificado aprobado para técnico {}", idUsuarioTecnico);
+    }
+
+    @Override
+    @Transactional
+    public void rechazarCertificado(UUID idUsuarioTecnico, UUID idEspecialidad) {
+        log.info("Rechazando certificado de especialidad {} para técnico {}", idEspecialidad, idUsuarioTecnico);
+        TecnicoEspecialidad asignacion = tecnicoEspecialidadRepository
+            .findByIdUsuarioTecnicoAndIdEspecialidad(idUsuarioTecnico, idEspecialidad)
+            .orElseThrow(() -> EspecialidadNoEncontradaException.byIdEspecialidad(idEspecialidad));
+        asignacion.setEstadoCertificado(EstadoCertificado.RECHAZADO);
+        tecnicoEspecialidadRepository.save(asignacion);
+
+        String nombre = especialidadRepository.findByIdEspecialidad(idEspecialidad)
+            .map(Especialidad::getNombre).orElse(idEspecialidad.toString());
+        eventPublisher.publishEvent(new CertificadoRechazadoEvent(idUsuarioTecnico, idEspecialidad, nombre));
+        log.info("Certificado rechazado para técnico {}", idUsuarioTecnico);
     }
 
     @Override

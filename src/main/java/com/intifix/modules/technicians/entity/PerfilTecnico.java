@@ -8,6 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -74,12 +75,12 @@ public class PerfilTecnico {
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     @Builder.Default
-    private ZonedDateTime creadoEn = ZonedDateTime.now();
+    private ZonedDateTime creadoEn = ZonedDateTime.now(ZoneId.systemDefault());
 
     @PrePersist
     protected void onCreate() {
         if (creadoEn == null) {
-            creadoEn = ZonedDateTime.now();
+            creadoEn = ZonedDateTime.now(ZoneId.systemDefault());
         }
     }
 }

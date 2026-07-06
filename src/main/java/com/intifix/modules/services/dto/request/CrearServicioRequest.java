@@ -45,8 +45,9 @@ public class CrearServicioRequest {
     @NotNull(message = "La modalidad es obligatoria")
     private ModalidadServicio modalidad;
 
-    @DecimalMin(value = "0.01", message = "El presupuesto máximo debe ser mayor a 0")
-    @DecimalMax(value = "999999.99", message = "El presupuesto máximo no puede exceder 999999.99")
+    @NotNull(message = "El presupuesto del cliente es obligatorio")
+    @DecimalMin(value = "0.01", message = "El presupuesto debe ser mayor a 0")
+    @DecimalMax(value = "999999.99", message = "El presupuesto no puede exceder 999,999.99")
     private BigDecimal presupuestoMaximo;
 
     /** Scheduling mode; defaults to EXACTA if null. */

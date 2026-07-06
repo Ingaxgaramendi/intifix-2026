@@ -10,6 +10,7 @@ import com.intifix.modules.services.enums.EstadoServicio;
 import com.intifix.modules.services.event.CotizacionAceptadaEvent;
 import com.intifix.modules.services.exception.*;
 import com.intifix.modules.services.gateway.TechnicianGateway;
+import com.intifix.modules.services.gateway.UserGateway;
 import com.intifix.modules.services.mapper.CotizacionMapper;
 import com.intifix.modules.services.repository.CotizacionRepository;
 import com.intifix.modules.services.repository.ServicioRepository;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.intifix.modules.services.enums.TipoFecha;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -49,6 +51,7 @@ public class CotizacionServiceImpl implements CotizacionService {
     private final ServicioRepository servicioRepository;
     private final CotizacionMapper cotizacionMapper;
     private final TechnicianGateway technicianGateway;
+    private final UserGateway userGateway;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -70,6 +73,11 @@ public class CotizacionServiceImpl implements CotizacionService {
             throw ServicioFinalizadoException.cannotQuote(request.getIdServicio());
         }
 
+        if (!userGateway.isUserActive(servicio.getIdCliente())) {
+            log.warn("Intento de cotizar servicio de cliente inactivo: {}", request.getIdServicio());
+            throw ClienteNoActivoException.forServicio(request.getIdServicio());
+        }
+
         if (!technicianGateway.existsTechnician(idUsuarioTecnico)) {
             log.warn("Técnico no encontrado: {}", idUsuarioTecnico);
             throw TecnicoNoEncontradoException.byId(idUsuarioTecnico);
@@ -85,31 +93,8 @@ public class CotizacionServiceImpl implements CotizacionService {
             throw TecnicoNoDisponibleException.byId(idUsuarioTecnico);
         }
 
-        // Validate proposed date based on service scheduling mode.
-        TipoFecha tipoFecha = servicio.getTipoFecha() != null ? servicio.getTipoFecha() : TipoFecha.EXACTA;
-        ZonedDateTime ahora = ZonedDateTime.now();
-        switch (tipoFecha) {
-            case URGENTE -> {
-                if (request.getFechaPropuesta() == null)
-                    throw new IllegalArgumentException("Debes proponer una hora: hoy o a más tardar mañana.");
-                if (!request.getFechaPropuesta().isAfter(ahora))
-                    throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
-                ZonedDateTime limiteUrgente = ahora.plusDays(2).truncatedTo(ChronoUnit.DAYS);
-                if (!request.getFechaPropuesta().isBefore(limiteUrgente))
-                    throw new IllegalArgumentException("Para servicios urgentes solo puedes proponer hoy o mañana.");
-            }
-            case RANGO -> {
-                if (request.getFechaPropuesta() == null)
-                    throw new IllegalArgumentException("Debes proponer una fecha y hora dentro del rango solicitado.");
-                if (!request.getFechaPropuesta().isAfter(ahora))
-                    throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
-                ZonedDateTime finRango = servicio.getFechaFinRango().plusDays(1).truncatedTo(ChronoUnit.DAYS);
-                if (request.getFechaPropuesta().isBefore(servicio.getFechaInicioRango()) ||
-                    !request.getFechaPropuesta().isBefore(finRango))
-                    throw new IllegalArgumentException("La fecha propuesta debe estar dentro del rango indicado por el cliente.");
-            }
-            case EXACTA -> { /* fecha ya fijada por el cliente; no se requiere propuesta */ }
-        }
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.systemDefault());
+        validarFechaPropuesta(request, servicio, ahora);
 
         Cotizacion cotizacion = cotizacionMapper.toEntity(request);
         cotizacion.setIdUsuarioTecnico(idUsuarioTecnico);
@@ -145,7 +130,7 @@ public class CotizacionServiceImpl implements CotizacionService {
         }
 
         cotizacion.setEstado(request.getEstado());
-        cotizacion.setFechaRespuesta(ZonedDateTime.now());
+        cotizacion.setFechaRespuesta(ZonedDateTime.now(ZoneId.systemDefault()));
 
         if (request.getEstado() == EstadoCotizacion.RECHAZADA) {
             cotizacion.setMotivoRechazo(request.getMotivo());
@@ -226,7 +211,7 @@ public class CotizacionServiceImpl implements CotizacionService {
     @Transactional(readOnly = true)
     public Page<CotizacionResponse> obtenerCotizacionesPendientesPorServicio(UUID idServicio, Pageable pageable) {
         log.debug("Obteniendo cotizaciones pendientes por servicio: {}", idServicio);
-        Page<Cotizacion> cotizaciones = cotizacionRepository.findPendientesByServicio(idServicio, ZonedDateTime.now(), pageable);
+        Page<Cotizacion> cotizaciones = cotizacionRepository.findPendientesByServicio(idServicio, ZonedDateTime.now(ZoneId.systemDefault()), pageable);
         return cotizaciones.map(cotizacionMapper::toResponse);
     }
 
@@ -264,13 +249,43 @@ public class CotizacionServiceImpl implements CotizacionService {
     @Transactional
     public void expirarCotizacionesVencidas() {
         log.info("Expirando cotizaciones vencidas");
-        List<Cotizacion> vencidas = cotizacionRepository.findExpired(ZonedDateTime.now());
-        
+        List<Cotizacion> vencidas = cotizacionRepository.findExpired(ZonedDateTime.now(ZoneId.systemDefault()));
+
         for (Cotizacion cotizacion : vencidas) {
             cotizacion.setEstado(EstadoCotizacion.EXPIRADA);
             cotizacionRepository.save(cotizacion);
         }
-        
+
         log.info("Cotizaciones expiradas: {}", vencidas.size());
+    }
+
+    private void validarFechaPropuesta(CrearCotizacionRequest request, Servicio servicio, ZonedDateTime ahora) {
+        TipoFecha tipoFecha = servicio.getTipoFecha() != null ? servicio.getTipoFecha() : TipoFecha.EXACTA;
+        switch (tipoFecha) {
+            case URGENTE -> validarFechaUrgente(request, ahora);
+            case RANGO -> validarFechaRango(request, servicio, ahora);
+            case EXACTA -> { /* fecha fijada por el cliente; no se requiere propuesta */ }
+        }
+    }
+
+    private void validarFechaUrgente(CrearCotizacionRequest request, ZonedDateTime ahora) {
+        if (request.getFechaPropuesta() == null)
+            throw new IllegalArgumentException("Debes proponer una hora: hoy o a más tardar mañana.");
+        if (!request.getFechaPropuesta().isAfter(ahora))
+            throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
+        ZonedDateTime limiteUrgente = ahora.plusDays(2).truncatedTo(ChronoUnit.DAYS);
+        if (!request.getFechaPropuesta().isBefore(limiteUrgente))
+            throw new IllegalArgumentException("Para servicios urgentes solo puedes proponer hoy o mañana.");
+    }
+
+    private void validarFechaRango(CrearCotizacionRequest request, Servicio servicio, ZonedDateTime ahora) {
+        if (request.getFechaPropuesta() == null)
+            throw new IllegalArgumentException("Debes proponer una fecha y hora dentro del rango solicitado.");
+        if (!request.getFechaPropuesta().isAfter(ahora))
+            throw new IllegalArgumentException("La fecha propuesta debe ser futura.");
+        ZonedDateTime finRango = servicio.getFechaFinRango().plusDays(1).truncatedTo(ChronoUnit.DAYS);
+        if (request.getFechaPropuesta().isBefore(servicio.getFechaInicioRango()) ||
+            !request.getFechaPropuesta().isBefore(finRango))
+            throw new IllegalArgumentException("La fecha propuesta debe estar dentro del rango indicado por el cliente.");
     }
 }

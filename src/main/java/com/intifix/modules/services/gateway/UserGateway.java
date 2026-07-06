@@ -72,4 +72,15 @@ public interface UserGateway {
      * @return the client's full name, or null if not found
      */
     String getClientName(UUID idCliente);
+
+    /**
+     * Gets the profile location UUID of a client (perfiles_cliente.id_ubicacion).
+     *
+     * Used to calculate distance between technician and client regardless of
+     * the service modalidad (EN_CASA_CLIENTE or EN_TALLER_TECNICO).
+     *
+     * @param idCliente the UUID of the client
+     * @return the client's profile location UUID, or null if not set
+     */
+    UUID getClientLocation(UUID idCliente);
 }

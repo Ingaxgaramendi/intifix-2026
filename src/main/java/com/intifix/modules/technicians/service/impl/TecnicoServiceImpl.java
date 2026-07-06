@@ -20,6 +20,7 @@ import com.intifix.modules.technicians.mapper.TecnicoMapper;
 import com.intifix.modules.technicians.repository.PerfilTecnicoRepository;
 import com.intifix.modules.technicians.service.TecnicoService;
 import com.intifix.modules.audit.event.TechnicianApprovedEvent;
+import com.intifix.modules.audit.event.TechnicianRejectedEvent;
 import com.intifix.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -248,6 +249,11 @@ public class TecnicoServiceImpl implements TecnicoService {
         perfilTecnico.setEstadoAprobacion(EstadoAprobacionTecnico.RECHAZADO);
         PerfilTecnico actualizado = perfilTecnicoRepository.save(perfilTecnico);
         log.info("Técnico rechazado exitosamente para idUsuario: {}", actualizado.getIdUsuario());
+
+        eventPublisher.publishEvent(new TechnicianRejectedEvent(
+            actualizado.getIdUsuario(),
+            SecurityUtils.currentUserId()
+        ));
 
         return tecnicoMapper.toResponse(actualizado);
     }

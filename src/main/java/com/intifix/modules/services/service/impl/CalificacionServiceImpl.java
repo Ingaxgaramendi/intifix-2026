@@ -86,7 +86,7 @@ public class CalificacionServiceImpl implements CalificacionService {
         calificacion.setIdCalificacion(UUID.randomUUID());
         calificacion.setIdCliente(idCliente);
         calificacion.setIdUsuarioTecnico(idUsuarioTecnico);
-        calificacion.setFechaCalificacion(java.time.ZonedDateTime.now());
+        calificacion.setFechaCalificacion(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
 
         Calificacion guardada = calificacionRepository.save(calificacion);
 

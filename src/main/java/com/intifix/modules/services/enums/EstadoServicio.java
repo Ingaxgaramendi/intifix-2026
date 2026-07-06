@@ -34,7 +34,13 @@ public enum EstadoServicio {
      * The service is in progress at the client's location.
      */
     EN_PROCESO,
-    
+
+    /**
+     * Technician marked the service as done; waiting for client confirmation.
+     * The client must confirm completion before the service is fully FINALIZADO.
+     */
+    PENDIENTE_CONFIRMACION,
+
     /**
      * Service has been completed successfully.
      * Ready for client review and rating.

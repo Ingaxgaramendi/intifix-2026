@@ -46,4 +46,7 @@ public class ServicioResponse {
     private ZonedDateTime fechaFinRango;
     private ZonedDateTime fechaCreacion;
     private ZonedDateTime fechaActualizacion;
+    /** Distancia en km desde la ubicación del técnico hasta el servicio. Null si el técnico
+     *  no tiene ubicación registrada o el servicio es EN_TALLER_TECNICO. */
+    private Double distanciaKm;
 }

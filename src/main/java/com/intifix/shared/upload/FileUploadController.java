@@ -116,7 +116,7 @@ public class FileUploadController {
 
     /** Sube los bytes a Cloudinary y devuelve la URL segura (https) del recurso. */
     private String subirACloudinary(MultipartFile file, Cloudinary client) throws IOException {
-        // resource_type "image" para TODO (imágenes Y PDFs):
+        // resource_type "image" para todos los tipos (imágenes Y PDFs):
         // Con "auto" Cloudinary clasifica los PDFs como "raw" (no imagen/video) y los
         // guarda en /raw/upload/ — quedan en la sección "Raw files", no en "Images".
         // Con "image" los PDFs quedan en /image/upload/ con format:pdf, visibles en

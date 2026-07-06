@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -50,7 +51,7 @@ public class AsignacionServicio {
 
     @Column(name = "fecha_asignacion", nullable = false)
     @Builder.Default
-    private ZonedDateTime fechaAsignacion = ZonedDateTime.now();
+    private ZonedDateTime fechaAsignacion = ZonedDateTime.now(ZoneId.systemDefault());
 
     @Column(name = "fecha_inicio_estimada")
     private ZonedDateTime fechaInicioEstimada;
@@ -88,7 +89,7 @@ public class AsignacionServicio {
     @PrePersist
     protected void onCreate() {
         if (fechaAsignacion == null) {
-            fechaAsignacion = ZonedDateTime.now();
+            fechaAsignacion = ZonedDateTime.now(ZoneId.systemDefault());
         }
     }
 }

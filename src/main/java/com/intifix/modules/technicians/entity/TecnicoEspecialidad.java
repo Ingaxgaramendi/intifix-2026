@@ -1,7 +1,10 @@
 package com.intifix.modules.technicians.entity;
 
+import com.intifix.modules.technicians.enums.EstadoCertificado;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
@@ -38,4 +41,9 @@ public class TecnicoEspecialidad {
 
     @Column(name = "certificado_url", columnDefinition = "TEXT")
     private String certificadoUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_certificado", nullable = false, length = 20)
+    @Builder.Default
+    private EstadoCertificado estadoCertificado = EstadoCertificado.PENDIENTE;
 }

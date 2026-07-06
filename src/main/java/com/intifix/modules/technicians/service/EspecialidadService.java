@@ -31,6 +31,10 @@ public interface EspecialidadService {
 
     void actualizarCertificadoEspecialidad(UUID idUsuarioTecnico, UUID idEspecialidad, String certificadoUrl);
 
+    void aprobarCertificado(UUID idUsuarioTecnico, UUID idEspecialidad);
+
+    void rechazarCertificado(UUID idUsuarioTecnico, UUID idEspecialidad);
+
     List<UUID> listarTecnicosPorEspecialidad(UUID idEspecialidad);
 
     boolean existeEspecialidad(UUID idEspecialidad);

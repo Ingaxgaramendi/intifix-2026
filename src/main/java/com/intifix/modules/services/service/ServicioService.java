@@ -39,8 +39,9 @@ public interface ServicioService {
 
     /**
      * Marketplace: servicios PUBLICOS abiertos (PENDIENTE/COTIZANDO) visibles para técnicos.
+     * @param idUbicacionTecnico ubicación del técnico autenticado (puede ser null) para calcular distanciaKm
      */
-    Page<ServicioResponse> obtenerServiciosDisponibles(Pageable pageable);
+    Page<ServicioResponse> obtenerServiciosDisponibles(Pageable pageable, UUID idUbicacionTecnico);
 
     /**
      * Solicitudes directas enviadas al técnico autenticado (estado PENDIENTE/COTIZANDO).

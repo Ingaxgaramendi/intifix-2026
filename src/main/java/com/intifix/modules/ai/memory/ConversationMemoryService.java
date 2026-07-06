@@ -53,6 +53,10 @@ public class ConversationMemoryService {
         guardar(conversationId, ROLE_ASSISTANT, content);
     }
 
+    public void limpiarHistorial(String conversationId) {
+        repository.deleteByConversationId(conversationId);
+    }
+
     private void guardar(String conversationId, String role, String content) {
         if (content == null || content.isBlank()) {
             return;

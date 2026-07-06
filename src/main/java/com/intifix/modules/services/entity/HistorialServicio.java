@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -60,7 +61,7 @@ public class HistorialServicio {
 
     @Column(name = "fecha_cambio", nullable = false)
     @Builder.Default
-    private ZonedDateTime fechaCambio = ZonedDateTime.now();
+    private ZonedDateTime fechaCambio = ZonedDateTime.now(ZoneId.systemDefault());
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
@@ -71,7 +72,7 @@ public class HistorialServicio {
     @PrePersist
     protected void onCreate() {
         if (fechaCambio == null) {
-            fechaCambio = ZonedDateTime.now();
+            fechaCambio = ZonedDateTime.now(ZoneId.systemDefault());
         }
     }
 }

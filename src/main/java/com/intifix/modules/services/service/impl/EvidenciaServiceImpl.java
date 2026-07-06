@@ -46,7 +46,7 @@ public class EvidenciaServiceImpl implements EvidenciaService {
 
         EvidenciaServicio evidencia = evidenciaMapper.toEntity(request);
         evidencia.setIdEvidencia(UUID.randomUUID());
-        evidencia.setFechaSubida(java.time.ZonedDateTime.now());
+        evidencia.setFechaSubida(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
 
         EvidenciaServicio guardada = evidenciaServicioRepository.save(evidencia);
 

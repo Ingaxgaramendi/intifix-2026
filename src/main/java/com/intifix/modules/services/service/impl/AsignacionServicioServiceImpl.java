@@ -77,7 +77,7 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
         asignacion.setIdAsignacion(UUID.randomUUID());
         asignacion.setIdServicio(idServicio);
         asignacion.setEstadoServicio(EstadoServicio.ASIGNADO);
-        asignacion.setFechaAsignacion(java.time.ZonedDateTime.now());
+        asignacion.setFechaAsignacion(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
 
         AsignacionServicio guardada = asignacionServicioRepository.save(asignacion);
 
@@ -202,7 +202,7 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
             .orElseThrow(() -> ServicioNoEncontradoException.byId(asignacion.getIdServicio()));
 
         asignacion.setEstadoServicio(EstadoServicio.EN_PROCESO);
-        asignacion.setFechaInicioReal(java.time.ZonedDateTime.now());
+        asignacion.setFechaInicioReal(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
         asignacionServicioRepository.save(asignacion);
 
         servicio.setEstado(EstadoServicio.EN_PROCESO);
@@ -225,16 +225,15 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
         Servicio servicio = servicioRepository.findById(asignacion.getIdServicio())
             .orElseThrow(() -> ServicioNoEncontradoException.byId(asignacion.getIdServicio()));
 
-        asignacion.setEstadoServicio(EstadoServicio.FINALIZADO);
-        asignacion.setFechaFinReal(java.time.ZonedDateTime.now());
+        asignacion.setEstadoServicio(EstadoServicio.PENDIENTE_CONFIRMACION);
+        asignacion.setFechaFinReal(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()));
         asignacionServicioRepository.save(asignacion);
 
-        servicio.setEstado(EstadoServicio.FINALIZADO);
-        servicio.setFechaFinalizacion(java.time.ZonedDateTime.now());
+        servicio.setEstado(EstadoServicio.PENDIENTE_CONFIRMACION);
         servicioRepository.save(servicio);
 
-        registrarHistorial(asignacion.getIdServicio(), EstadoServicio.EN_PROCESO, EstadoServicio.FINALIZADO,
-            "Servicio finalizado", asignacion.getIdUsuarioTecnico());
+        registrarHistorial(asignacion.getIdServicio(), EstadoServicio.EN_PROCESO, EstadoServicio.PENDIENTE_CONFIRMACION,
+            "Técnico finalizó el trabajo, esperando confirmación del cliente", asignacion.getIdUsuarioTecnico());
 
         log.info("Servicio finalizado exitosamente: {}", idAsignacion);
     }
@@ -268,7 +267,7 @@ public class AsignacionServicioServiceImpl implements AsignacionServicioService 
             .estadoNuevo(estadoNuevo)
             .comentario(comentario)
             .cambiadoPor(cambiadoPor)
-            .fechaCambio(java.time.ZonedDateTime.now())
+            .fechaCambio(java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault()))
             .build();
         
         historialServicioRepository.save(historial);

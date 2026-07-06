@@ -1,6 +1,7 @@
 package com.intifix.modules.services.event;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -37,7 +38,7 @@ public class CotizacionAceptadaEvent {
         this.precio = precio;
         this.tiempoEstimado = tiempoEstimado;
         this.fechaAceptacion = fechaAceptacion;
-        this.occurredOn = ZonedDateTime.now();
+        this.occurredOn = ZonedDateTime.now(ZoneId.systemDefault());
     }
 
     public UUID getIdCotizacion() {

@@ -41,7 +41,7 @@ public class TechnicianGatewayImpl implements TechnicianGateway {
         """;
 
     private static final String SQL_GET_TECHNICIAN_LOCATION = """
-        SELECT id_ubicacion FROM horarios_tecnico WHERE id_usuario_tecnico = ? LIMIT 1
+        SELECT id_ubicacion FROM perfiles_tecnico WHERE id_usuario = ?
         """;
 
     @Override
@@ -90,10 +90,12 @@ public class TechnicianGatewayImpl implements TechnicianGateway {
         if (idTecnico == null) {
             return null;
         }
-        // This is a simplified implementation. In a real scenario, you would need
-        // to query the technician's service areas or current location
-        // For now, we return null as location is not directly stored in technician profile
-        return null;
+        try {
+            return jdbcTemplate.queryForObject(SQL_GET_TECHNICIAN_LOCATION, UUID.class, idTecnico);
+        } catch (Exception e) {
+            log.debug("Técnico {} no tiene ubicación registrada: {}", idTecnico, e.getMessage());
+            return null;
+        }
     }
 
     @Override

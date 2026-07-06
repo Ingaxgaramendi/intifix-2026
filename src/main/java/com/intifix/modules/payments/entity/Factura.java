@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -51,6 +52,6 @@ public class Factura {
 
     @PrePersist
     protected void onCreate() {
-        fechaEmision = ZonedDateTime.now();
+        fechaEmision = ZonedDateTime.now(ZoneId.systemDefault());
     }
 }

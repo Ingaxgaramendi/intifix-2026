@@ -1,0 +1,84 @@
+services:
+  - type: web
+    name: intifix-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      # ── PostgreSQL (Aiven) ──────────────────────────────────────────────
+      - key: DB_POSTGRES_HOST
+        sync: false
+      - key: DB_POSTGRES_PORT
+        value: "23098"
+      - key: DB_POSTGRES_NAME
+        value: intifix_db
+      - key: DB_POSTGRES_USER
+        sync: false
+      - key: DB_POSTGRES_PASSWORD
+        sync: false
+      - key: DB_POSTGRES_SSLMODE
+        value: require
+
+      # ── MongoDB (Atlas) ────────────────────────────────────────────────
+      - key: DB_MONGO_HOST
+        sync: false
+      - key: DB_MONGO_NAME
+        value: Intifix_mongo
+      - key: DB_MONGO_USER
+        sync: false
+      - key: DB_MONGO_PASSWORD
+        sync: false
+
+      # ── Redis (Upstash) ────────────────────────────────────────────────
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: "6379"
+      - key: REDIS_USERNAME
+        value: default
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: REDIS_SSL
+        value: "true"
+
+      # ── JWT ────────────────────────────────────────────────────────────
+      - key: JWT_SECRET
+        sync: false
+
+      # ── OpenAI ────────────────────────────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # ── Cloudinary ────────────────────────────────────────────────────
+      - key: cloudinary_cloud_name
+        sync: false
+      - key: cloudinary_api_key
+        sync: false
+      - key: cloudinary_api_secret
+        sync: false
+
+      # ── Mail (Gmail SMTP) ──────────────────────────────────────────────
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: INTIFIX
+
+      # ── CORS (actualizar con URLs reales del frontend cuando estén desplegados)
+      - key: CORS_ORIGIN_1
+        value: http://localhost:5173
+      - key: CORS_ORIGIN_2
+        value: http://localhost:5174
+      - key: CORS_ORIGIN_3
+        value: http://localhost:3000
+
+      # ── Frontend URL para emails de recuperación de contraseña ─────────
+      - key: APP_FRONTEND_URL
+        value: http://localhost:5173

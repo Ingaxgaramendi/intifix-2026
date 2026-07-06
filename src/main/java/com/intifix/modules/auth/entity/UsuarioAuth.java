@@ -11,6 +11,7 @@ import org.hibernate.type.SqlTypes;
 // rol_usuario): sin NAMED_ENUM, Hibernate envía varchar y el INSERT falla.
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -57,7 +58,7 @@ public class UsuarioAuth {
 
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     @Builder.Default
-    private LocalDateTime fechaRegistro = LocalDateTime.now();
+    private LocalDateTime fechaRegistro = LocalDateTime.now(ZoneId.systemDefault());
 
     /** Cuándo se levanta automáticamente la suspensión. NULL si es indefinida (ban) o cuenta activa. */
     @Column(name = "suspension_hasta")
@@ -80,7 +81,7 @@ public class UsuarioAuth {
             idUsuario = UUID.randomUUID();
         }
         if (fechaRegistro == null) {
-            fechaRegistro = LocalDateTime.now();
+            fechaRegistro = LocalDateTime.now(ZoneId.systemDefault());
         }
         if (estado == null) {
             estado = EstadoUsuario.ACTIVO;

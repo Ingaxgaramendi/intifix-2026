@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -34,11 +35,11 @@ public class ReputacionTecnico {
 
     @Column(name = "actualizado_en", nullable = false)
     @Builder.Default
-    private ZonedDateTime actualizadoEn = ZonedDateTime.now();
+    private ZonedDateTime actualizadoEn = ZonedDateTime.now(ZoneId.systemDefault());
 
     @PrePersist
     @PreUpdate
     protected void onUpdate() {
-        actualizadoEn = ZonedDateTime.now();
+        actualizadoEn = ZonedDateTime.now(ZoneId.systemDefault());
     }
 }

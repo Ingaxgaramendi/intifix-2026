@@ -1,5 +1,6 @@
 package com.intifix.modules.technicians.dto.response;
 
+import com.intifix.modules.technicians.enums.EstadoCertificado;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,4 +22,5 @@ public class EspecialidadTecnicoResponse {
     private String nombre;
     private String descripcion;
     private String certificadoUrl;
+    private EstadoCertificado estadoCertificado;
 }

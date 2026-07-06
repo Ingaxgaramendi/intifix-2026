@@ -18,7 +18,6 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -46,9 +45,11 @@ public class TechnicianTools {
             Acepta nombres parciales o coloquiales: "refrigeradoras", "fridge",
             "lavadora", "tele", "luz", "caño", etc.
             Devuelve los técnicos de la categoría más parecida.""")
-    public List<TecnicoResponse> findByCategory(
+    public List<TecnicoRankeado> findByCategory(
             @ToolParam(description = "Nombre o palabra clave de la categoría") String category) {
-        return buscarPorCategoria(category);
+        return buscarPorCategoria(category).stream()
+                .map(this::enriquecerConReputacion)
+                .toList();
     }
 
     @Tool(description = """
@@ -65,8 +66,8 @@ public class TechnicianTools {
                 .map(this::enriquecerConReputacion)
                 .sorted(Comparator
                         .comparing((TecnicoRankeado t) ->
-                                t.tecnico().getDisponibilidad() == DisponibilidadTecnico.DISPONIBLE ? 0 : 1)
-                        .thenComparing(t -> t.promedioCalificacion(),
+                                t.disponibilidad() == DisponibilidadTecnico.DISPONIBLE ? 0 : 1)
+                        .thenComparing(TecnicoRankeado::promedioCalificacion,
                                 Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(TOP_RECOMENDACIONES)
                 .toList();
@@ -76,9 +77,11 @@ public class TechnicianTools {
             Busca técnicos a partir de la descripción de un problema técnico.
             Infiere la categoría más probable del problema y busca con coincidencia
             parcial (ej: "mi nevera no enfría" → busca "refrigeradoras").""")
-    public List<TecnicoResponse> findByProblem(
+    public List<TecnicoRankeado> findByProblem(
             @ToolParam(description = "Descripción del problema o categoría probable") String problem) {
-        return buscarPorCategoria(problem);
+        return buscarPorCategoria(problem).stream()
+                .map(this::enriquecerConReputacion)
+                .toList();
     }
 
     // ------------------------------------------------------------------ helpers
@@ -146,13 +149,12 @@ public class TechnicianTools {
         try {
             if (reputacionService.existeReputacion(tecnico.getIdUsuario())) {
                 ReputacionResponse rep = reputacionService.obtenerReputacion(tecnico.getIdUsuario());
-                return new TecnicoRankeado(
-                        tecnico, rep.getPromedioCalificacion(), rep.getTotalResenas(), rep.getTotalServicios());
+                return TecnicoRankeado.of(tecnico, rep);
             }
         } catch (RuntimeException e) {
             log.warn("No se pudo obtener reputación del técnico {}: {}",
                     tecnico.getIdUsuario(), e.getMessage());
         }
-        return new TecnicoRankeado(tecnico, BigDecimal.ZERO, 0, 0);
+        return TecnicoRankeado.sinReputacion(tecnico);
     }
 }

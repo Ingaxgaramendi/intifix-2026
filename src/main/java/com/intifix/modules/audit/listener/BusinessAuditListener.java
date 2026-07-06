@@ -36,56 +36,58 @@ public class BusinessAuditListener {
     @EventListener
     public void handle(UserCreatedEvent event) {
         registrar(AuditModule.USERS, AuditAction.CREAR, event.getClass().getSimpleName(),
-                event.userId(), "Usuario", event.userId(), null, event);
+                new AuditResource(event.userId(), "Usuario"), event.userId(), null, event);
     }
 
     @EventListener
     public void handle(UserUpdatedEvent event) {
         registrar(AuditModule.USERS, AuditAction.ACTUALIZAR, event.getClass().getSimpleName(),
-                event.userId(), "Usuario", AuditRequestContext.currentUserIdOrNull(),
+                new AuditResource(event.userId(), "Usuario"), AuditRequestContext.currentUserIdOrNull(),
                 event.oldValue(), event.newValue());
     }
 
     @EventListener
     public void handle(TechnicianApprovedEvent event) {
         registrar(AuditModule.TECHNICIANS, AuditAction.APROBAR, event.getClass().getSimpleName(),
-                event.technicianId(), "Tecnico", event.approvedBy(), null, null);
+                new AuditResource(event.technicianId(), "Tecnico"), event.approvedBy(), null, null);
     }
 
     @EventListener
     public void handle(ServiceCreatedEvent event) {
         registrar(AuditModule.SERVICES, AuditAction.CREAR, event.getClass().getSimpleName(),
-                event.serviceId(), "Servicio", event.clientId(), null, null);
+                new AuditResource(event.serviceId(), "Servicio"), event.clientId(), null, null);
     }
 
     @EventListener
     public void handle(ServiceCancelledEvent event) {
         registrar(AuditModule.SERVICES, AuditAction.CANCELAR, event.getClass().getSimpleName(),
-                event.serviceId(), "Servicio", event.cancelledBy(), null, event.motivo());
+                new AuditResource(event.serviceId(), "Servicio"), event.cancelledBy(), null, event.motivo());
     }
 
     @EventListener
     public void handle(PaymentCompletedEvent event) {
         registrar(AuditModule.PAYMENTS, AuditAction.PAGAR, event.getClass().getSimpleName(),
-                event.paymentId(), "Pago", event.userId(), null, event.monto());
+                new AuditResource(event.paymentId(), "Pago"), event.userId(), null, event.monto());
     }
 
     @EventListener
     public void handle(InvoiceGeneratedEvent event) {
         registrar(AuditModule.PAYMENTS, AuditAction.EMITIR, event.getClass().getSimpleName(),
-                event.invoiceId(), "Factura", event.userId(), null, null);
+                new AuditResource(event.invoiceId(), "Factura"), event.userId(), null, null);
     }
 
+    private record AuditResource(UUID id, String type) {}
+
     private void registrar(AuditModule module, AuditAction action, String eventType,
-                           UUID resourceId, String resourceType, UUID actorUserId,
+                           AuditResource resource, UUID actorUserId,
                            Object oldValue, Object newValue) {
         AuditEventDocument evento = AuditEventDocument.builder()
                 .eventId(UUID.randomUUID())
                 .eventType(eventType)
                 .module(module)
                 .action(action)
-                .resourceId(resourceId)
-                .resourceType(resourceType)
+                .resourceId(resource.id())
+                .resourceType(resource.type())
                 .userId(actorUserId)
                 .oldValue(oldValue)
                 .newValue(newValue)

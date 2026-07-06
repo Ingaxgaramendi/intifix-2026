@@ -8,4 +8,7 @@ public interface ConversationMessageRepository extends MongoRepository<Conversat
 
     /** Últimos N mensajes de la conversación (más reciente primero). */
     List<ConversationMessage> findTop20ByConversationIdOrderByCreadoEnDesc(String conversationId);
+
+    /** Borra todos los mensajes de una conversación (reset de historial). */
+    void deleteByConversationId(String conversationId);
 }

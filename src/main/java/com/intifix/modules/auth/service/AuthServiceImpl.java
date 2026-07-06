@@ -61,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
             .estado(EstadoUsuario.ACTIVO)
             .verificado(false)
             .intentosFallidos(0)
-            .fechaRegistro(LocalDateTime.now())
+            .fechaRegistro(LocalDateTime.now(ZoneId.systemDefault()))
             .build();
 
         UsuarioAuth usuarioGuardado = usuarioAuthRepository.save(nuevoUsuario);
@@ -99,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         reiniciarIntentosFallidos(usuario);
-        usuario.setUltimoLogin(LocalDateTime.now());
+        usuario.setUltimoLogin(LocalDateTime.now(ZoneId.systemDefault()));
         usuarioAuthRepository.save(usuario);
 
         log.info("Login exitoso para usuario: {}", usuario.getIdUsuario());

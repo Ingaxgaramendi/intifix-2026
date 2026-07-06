@@ -3,6 +3,7 @@ package com.intifix.modules.technicians.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -34,12 +35,12 @@ public class ExcepcionHorarioTecnico {
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     @Builder.Default
-    private ZonedDateTime creadoEn = ZonedDateTime.now();
+    private ZonedDateTime creadoEn = ZonedDateTime.now(ZoneId.systemDefault());
 
     @PrePersist
     protected void onCreate() {
         if (creadoEn == null) {
-            creadoEn = ZonedDateTime.now();
+            creadoEn = ZonedDateTime.now(ZoneId.systemDefault());
         }
     }
 }

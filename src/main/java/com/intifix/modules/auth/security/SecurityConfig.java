@@ -1,5 +1,6 @@
 package com.intifix.modules.auth.security;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -59,6 +60,9 @@ public class SecurityConfig {
                 headers.cacheControl(Customizer.withDefaults());
             })
             .authorizeHttpRequests(auth -> auth
+                // Async/error dispatches are internal Tomcat re-dispatches — JWT was
+                // already validated on the original REQUEST dispatch.
+                .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()

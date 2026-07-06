@@ -1,5 +1,6 @@
 package com.intifix.modules.services.event;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class ServicioCreadoEvent {
         this.idUbicacion = idUbicacion;
         this.titulo = titulo;
         this.fechaCreacion = fechaCreacion;
-        this.occurredOn = ZonedDateTime.now();
+        this.occurredOn = ZonedDateTime.now(ZoneId.systemDefault());
     }
 
     public UUID getIdServicio() {

@@ -78,23 +78,29 @@ public class GeolocationGatewayImpl implements GeolocationGateway {
         }
 
         try {
-            // Get coordinates for origin
             Double[] origenCoords = jdbcTemplate.queryForObject(
                 SQL_GET_LOCATION_COORDS,
-                (rs, rowNum) -> new Double[]{rs.getDouble(COL_LATITUD), rs.getDouble(COL_LONGITUD)},
+                (rs, rowNum) -> {
+                    double lat = rs.getDouble(COL_LATITUD);
+                    double lng = rs.getDouble(COL_LONGITUD);
+                    return (rs.wasNull()) ? null : new Double[]{lat, lng};
+                },
                 idUbicacionOrigen
             );
 
-            // Get coordinates for destination
             Double[] destinoCoords = jdbcTemplate.queryForObject(
                 SQL_GET_LOCATION_COORDS,
-                (rs, rowNum) -> new Double[]{rs.getDouble(COL_LATITUD), rs.getDouble(COL_LONGITUD)},
+                (rs, rowNum) -> {
+                    double lat = rs.getDouble(COL_LATITUD);
+                    double lng = rs.getDouble(COL_LONGITUD);
+                    return (rs.wasNull()) ? null : new Double[]{lat, lng};
+                },
                 idUbicacionDestino
             );
 
             if (origenCoords == null || destinoCoords == null) {
-                log.warn("Could not retrieve coordinates for one or both locations");
-                return 0.0;
+                log.warn("Coordenadas NULL para origen={} destino={}", idUbicacionOrigen, idUbicacionDestino);
+                return -1.0;
             }
 
             // Haversine formula to calculate distance in kilometers
@@ -117,7 +123,7 @@ public class GeolocationGatewayImpl implements GeolocationGateway {
 
         } catch (Exception e) {
             log.error("Error calculating distance between {} and {}", idUbicacionOrigen, idUbicacionDestino, e);
-            return 0.0;
+            return -1.0;
         }
     }
 

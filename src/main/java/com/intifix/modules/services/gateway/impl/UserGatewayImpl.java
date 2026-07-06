@@ -49,6 +49,10 @@ public class UserGatewayImpl implements UserGateway {
         SELECT nombres_completos FROM perfiles_cliente WHERE id_usuario = ?
         """;
 
+    private static final String SQL_GET_CLIENT_LOCATION = """
+        SELECT id_ubicacion FROM perfiles_cliente WHERE id_usuario = ?
+        """;
+
     @Override
     @Transactional(readOnly = true)
     public boolean existsClient(UUID idCliente) {
@@ -109,5 +113,21 @@ public class UserGatewayImpl implements UserGateway {
         List<String> nombres = jdbcTemplate.query(
                 SQL_GET_CLIENT_NAME, (rs, n) -> rs.getString(1), idCliente);
         return nombres.isEmpty() ? null : nombres.get(0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UUID getClientLocation(UUID idCliente) {
+        if (idCliente == null) {
+            return null;
+        }
+        try {
+            List<UUID> results = jdbcTemplate.query(
+                    SQL_GET_CLIENT_LOCATION, (rs, n) -> rs.getObject(1, UUID.class), idCliente);
+            return results.isEmpty() ? null : results.get(0);
+        } catch (Exception e) {
+            log.debug("Cliente {} no tiene ubicación registrada: {}", idCliente, e.getMessage());
+            return null;
+        }
     }
 }

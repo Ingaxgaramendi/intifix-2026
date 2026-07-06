@@ -1,5 +1,6 @@
 package com.intifix.modules.services.event;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -36,7 +37,7 @@ public class CalificacionRegistradaEvent {
         this.puntuacion = puntuacion;
         this.comentario = comentario;
         this.fechaCalificacion = fechaCalificacion;
-        this.occurredOn = ZonedDateTime.now();
+        this.occurredOn = ZonedDateTime.now(ZoneId.systemDefault());
     }
 
     public UUID getIdCalificacion() {

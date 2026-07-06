@@ -1,7 +1,10 @@
 package com.intifix.modules.ai.service.impl;
 
 import com.intifix.modules.ai.dto.ChatRequest;
+import com.intifix.modules.ai.dto.PresupuestoSugeridoRequest;
+import com.intifix.modules.ai.dto.PresupuestoSugeridoResponse;
 import com.intifix.modules.ai.memory.ConversationMemoryService;
+import com.intifix.modules.ai.prompt.SystemPrompts;
 import com.intifix.modules.ai.service.AiAssistantService;
 import com.intifix.modules.ai.tools.ServiceTools;
 import com.intifix.modules.ai.tools.TechnicianTools;
@@ -45,7 +48,7 @@ public class AiAssistantServiceImpl implements AiAssistantService {
                 .doOnNext(acumulado::append)
                 .doOnComplete(() ->
                         memoryService.guardarMensajeAsistente(request.getConversationId(), acumulado.toString()))
-                .doOnError(e -> log.error("Error generando respuesta de IA (stream)", e));
+                .doOnError(e -> log.error("Error generando respuesta de IA (stream): {}", e.getMessage(), e));
     }
 
     @Override
@@ -59,6 +62,22 @@ public class AiAssistantServiceImpl implements AiAssistantService {
 
         memoryService.guardarMensajeAsistente(request.getConversationId(), respuesta);
         return respuesta;
+    }
+
+    @Override
+    public PresupuestoSugeridoResponse estimarPresupuesto(PresupuestoSugeridoRequest request) {
+        String userContent = "Título: %s\nDescripción: %s%s".formatted(
+                request.titulo(),
+                request.descripcion(),
+                request.especialidad() != null && !request.especialidad().isBlank()
+                        ? "\nEspecialidad: " + request.especialidad()
+                        : "");
+
+        return intifixChatClient.prompt()
+                .system(SystemPrompts.PRESUPUESTO_ESTIMACION)
+                .user(userContent)
+                .call()
+                .entity(PresupuestoSugeridoResponse.class);
     }
 
     // ------------------------------------------------------------------ helpers

@@ -6,8 +6,10 @@ import com.intifix.modules.services.dto.request.CrearServicioRequest;
 import com.intifix.modules.services.dto.response.ServicioDetalleResponse;
 import com.intifix.modules.services.dto.response.ServicioResponse;
 import com.intifix.modules.services.enums.EstadoServicio;
+import com.intifix.modules.services.gateway.TechnicianGateway;
 import com.intifix.modules.services.service.ServicioService;
 import com.intifix.modules.services.util.PageableUtils;
+import com.intifix.shared.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,6 +44,7 @@ import java.util.UUID;
 public class ServicioController {
 
     private final ServicioService servicioService;
+    private final TechnicianGateway technicianGateway;
 
     /** Propiedades por las que se permite ordenar los listados de servicios. */
     private static final Set<String> ORDEN_PERMITIDO =
@@ -174,7 +177,9 @@ public class ServicioController {
     public ResponseEntity<ApiResponse<Page<ServicioResponse>>> obtenerServiciosDisponibles(
             @PageableDefault(size = 20, sort = "fechaCreacion", direction = Sort.Direction.DESC) Pageable pageable) {
         Pageable saneado = PageableUtils.sanitize(pageable, ORDEN_PERMITIDO, ORDEN_DEFECTO);
-        Page<ServicioResponse> response = servicioService.obtenerServiciosDisponibles(saneado);
+        UUID techId = SecurityUtils.currentUserId();
+        UUID idUbicacionTecnico = technicianGateway.getTechnicianLocation(techId);
+        Page<ServicioResponse> response = servicioService.obtenerServiciosDisponibles(saneado, idUbicacionTecnico);
         return ResponseEntity.ok(ApiResponse.success("Servicios disponibles obtenidos exitosamente", response));
     }
 

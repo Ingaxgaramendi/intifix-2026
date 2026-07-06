@@ -77,6 +77,14 @@ public class ServiceExceptionHandler {
             .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(ClienteNoActivoException.class)
+    public ResponseEntity<ApiResponse<Void>> handleClienteNoActivo(ClienteNoActivoException ex) {
+        log.warn("Servicio no disponible (cliente inactivo): {}", ex.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(ApiResponse.error("Este servicio no está disponible actualmente"));
+    }
+
     @ExceptionHandler(TecnicoNoEncontradoException.class)
     public ResponseEntity<ApiResponse<Void>> handleTecnicoNoEncontrado(TecnicoNoEncontradoException ex) {
         log.warn("Técnico no encontrado: {}", ex.getMessage());

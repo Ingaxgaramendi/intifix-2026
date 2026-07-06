@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -104,6 +105,26 @@ public class EspecialidadController {
             @Valid @RequestBody ActualizarCertificadoEspecialidadRequest request) {
         especialidadService.actualizarCertificadoEspecialidad(idUsuarioTecnico, idEspecialidad, request.getCertificadoUrl());
         return ResponseEntity.ok(ApiResponse.success("Certificado de especialidad actualizado exitosamente.", null));
+    }
+
+    @PatchMapping("/tecnico/{idUsuarioTecnico}/especialidad/{idEspecialidad}/certificate/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Aprobar certificado de especialidad (Admin)", description = "El admin aprueba el certificado de una especialidad específica del técnico")
+    public ResponseEntity<ApiResponse<Void>> aprobarCertificado(
+            @PathVariable UUID idUsuarioTecnico,
+            @PathVariable UUID idEspecialidad) {
+        especialidadService.aprobarCertificado(idUsuarioTecnico, idEspecialidad);
+        return ResponseEntity.ok(ApiResponse.success("Certificado aprobado exitosamente.", null));
+    }
+
+    @PatchMapping("/tecnico/{idUsuarioTecnico}/especialidad/{idEspecialidad}/certificate/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Rechazar certificado de especialidad (Admin)", description = "El admin rechaza el certificado de una especialidad específica del técnico")
+    public ResponseEntity<ApiResponse<Void>> rechazarCertificado(
+            @PathVariable UUID idUsuarioTecnico,
+            @PathVariable UUID idEspecialidad) {
+        especialidadService.rechazarCertificado(idUsuarioTecnico, idEspecialidad);
+        return ResponseEntity.ok(ApiResponse.success("Certificado rechazado.", null));
     }
 
     @GetMapping("/{idEspecialidad}/tecnicos")

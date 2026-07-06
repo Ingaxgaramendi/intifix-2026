@@ -47,7 +47,7 @@ public class ChatNotificationListener {
                 "/queue/notifications",
                 notificacion);
 
-        // TODO(Firebase): enviar push a los tokens de dispositivo del destinatario.
+        // Firebase push to device tokens would be dispatched here once credentials are configured.
         log.debug("Notificación de mensaje generada para {}", evento.idDestinatario());
     }
 

@@ -14,6 +14,7 @@ import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 
 /**
  * Repository for Servicio entity.
@@ -71,4 +72,54 @@ public interface ServicioRepository extends JpaRepository<Servicio, UUID> {
 
     @Query("SELECT s FROM Servicio s WHERE s.idCliente = :idCliente ORDER BY s.fechaCreacion DESC")
     List<Servicio> findByIdClienteOrderByFechaCreacionDesc(@Param("idCliente") UUID idCliente);
+
+    /**
+     * Marketplace listing: only services whose client account is ACTIVO.
+     * Joining servicios → usuarios via native SQL keeps module independence
+     * (no JPA cross-module relationship).
+     */
+    @Query(value = """
+        SELECT s.* FROM servicios s
+        JOIN usuarios u ON s.id_cliente = u.id_usuario
+        WHERE s.estado::text IN (:estados)
+          AND s.tipo_solicitud::text = :tipoSolicitud
+          AND u.estado::text = 'ACTIVO'
+        ORDER BY s.fecha_creacion DESC
+        """,
+        countQuery = """
+        SELECT COUNT(*) FROM servicios s
+        JOIN usuarios u ON s.id_cliente = u.id_usuario
+        WHERE s.estado::text IN (:estados)
+          AND s.tipo_solicitud::text = :tipoSolicitud
+          AND u.estado::text = 'ACTIVO'
+        """,
+        nativeQuery = true)
+    Page<Servicio> findDisponiblesConClienteActivo(
+        @Param("estados") Collection<String> estados,
+        @Param("tipoSolicitud") String tipoSolicitud,
+        Pageable pageable);
+
+    /**
+     * Direct requests for a specific technician, filtered to active clients only.
+     */
+    @Query(value = """
+        SELECT s.* FROM servicios s
+        JOIN usuarios u ON s.id_cliente = u.id_usuario
+        WHERE s.id_tecnico_directo = :idTecnico
+          AND s.estado::text IN (:estados)
+          AND u.estado::text = 'ACTIVO'
+        ORDER BY s.fecha_creacion DESC
+        """,
+        countQuery = """
+        SELECT COUNT(*) FROM servicios s
+        JOIN usuarios u ON s.id_cliente = u.id_usuario
+        WHERE s.id_tecnico_directo = :idTecnico
+          AND s.estado::text IN (:estados)
+          AND u.estado::text = 'ACTIVO'
+        """,
+        nativeQuery = true)
+    Page<Servicio> findDirectasConClienteActivo(
+        @Param("idTecnico") UUID idTecnico,
+        @Param("estados") Collection<String> estados,
+        Pageable pageable);
 }

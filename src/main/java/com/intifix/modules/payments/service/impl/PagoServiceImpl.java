@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.EnumMap;
 import java.util.List;
@@ -135,7 +136,7 @@ public class PagoServiceImpl implements PagoService {
         if (resultado.exitoso()) {
             pago.setTransactionId(resultado.transactionId());
             pago.setEstado(EstadoPago.PAGADO);
-            pago.setFechaPago(ZonedDateTime.now());
+            pago.setFechaPago(ZonedDateTime.now(ZoneId.systemDefault()));
             Pago pagoActualizado = pagoRepository.save(pago);
 
             eventPublisher.publishEvent(new PagoConfirmadoEvent(
@@ -168,7 +169,7 @@ public class PagoServiceImpl implements PagoService {
                     pago.getIdServicio(),
                     resultado.mensaje(),
                     pago.getMontoTotal(),
-                    ZonedDateTime.now()
+                    ZonedDateTime.now(ZoneId.systemDefault())
             ));
 
             throw new IllegalStateException("Error al procesar pago: " + resultado.mensaje());
@@ -192,7 +193,7 @@ public class PagoServiceImpl implements PagoService {
 
         pago.setTransactionId(transactionId);
         pago.setEstado(EstadoPago.PAGADO);
-        pago.setFechaPago(ZonedDateTime.now());
+        pago.setFechaPago(ZonedDateTime.now(ZoneId.systemDefault()));
         Pago pagoActualizado = pagoRepository.save(pago);
 
         eventPublisher.publishEvent(new PagoConfirmadoEvent(
@@ -248,7 +249,7 @@ public class PagoServiceImpl implements PagoService {
                     pagoActualizado.getTransactionId(),
                     request.getRazon(),
                     pagoActualizado.getMontoTotal(),
-                    ZonedDateTime.now()
+                    ZonedDateTime.now(ZoneId.systemDefault())
             ));
 
             log.info("Pago reembolsado exitosamente: {}", pagoActualizado.getIdPago());

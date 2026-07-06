@@ -38,7 +38,6 @@ public class UbicacionLiveTecnico {
     @Id
     private UUID tecnicoUuid;
 
-    // GeoJSON Point: { "type": "Point", "coordinates": [longitud, latitud] }
     @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
     private GeoJsonPoint coordenadas;
 
