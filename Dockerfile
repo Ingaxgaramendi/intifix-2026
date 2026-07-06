@@ -2,7 +2,7 @@
 # Intifix Backend — imagen de producción (multi-stage)
 # =============================================================================
 # Etapa 1: build del fat-jar con Maven (usa la caché de .m2 cuando sea posible)
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 COPY pom.xml .
