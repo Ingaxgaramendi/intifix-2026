@@ -12,27 +12,16 @@ import java.util.List;
 public class CorsConfig {
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(CorsProperties props) {
         CorsConfiguration cfg = new CorsConfiguration();
-
-        cfg.setAllowedOrigins(List.of(
-            "https://intifix.web.app",
-            "https://intifix.firebaseapp.com",
-            "http://localhost:5173"
-        ));
-
-        cfg.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-
+        cfg.setAllowedOrigins(props.allowedOrigins());
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
-        cfg.setExposedHeaders(List.of("Authorization"));
         cfg.setAllowCredentials(true);
-        cfg.setMaxAge(3600 L);
+        cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
-
         return source;
     }
 }

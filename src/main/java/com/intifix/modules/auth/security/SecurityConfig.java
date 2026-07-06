@@ -19,8 +19,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.web.cors.CorsConfigurationSource;
 
+/**
+ * Única configuración de seguridad. Vive en modules/auth.
+ *
+ * Headers de seguridad aplicados a todas las respuestas:
+ *  - X-Content-Type-Options: nosniff       (anti-MIME-sniff)
+ *  - X-Frame-Options: DENY                 (anti-clickjacking)
+ *  - X-XSS-Protection: 0                   (deshabilitado; CSP es mejor)
+ *  - Referrer-Policy: strict-origin-when-cross-origin
+ *  - Permissions-Policy: restricción de características del navegador
+ *  - Cache-Control: no-store               (para respuestas autenticadas)
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -28,46 +38,52 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(cors - > cors.configurationSource(corsConfigurationSource))
-        .sessionManagement(session - > session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .headers(headers - > headers
-        .contentTypeOptions(Customizer.withDefaults())
-        .frameOptions(frame - > frame.deny())
-        .xssProtection(xss - > xss.disable())
-        .referrerPolicy(rp - > rp.policy(
-            ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-        .permissionsPolicy(pp - > pp.policy(
-            "camera=(), microphone=(), geolocation=(), payment=()"))
-        .cacheControl(Customizer.withDefaults())
-        )
-        .authorizeHttpRequests(auth - > auth
-        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers("/auth/**").permitAll()
-        .requestMatchers("/api/v1/auth/**").permitAll()
-        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-        .requestMatchers("/actuator/health").permitAll()
-        .requestMatchers("/ws/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
-        .anyRequest().authenticated()
-        )
-        .exceptionHandling(ex - > ex.authenticationEntryPoint((req, res, e) - >
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "No autenticado")
-        ))
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .csrf(AbstractHttpConfigurer::disable)
+            // Usa el CorsConfigurationSource de shared.config.CorsConfig
+            .cors(Customizer.withDefaults())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            // --- Security headers (OWASP A05, A06) ---
+            .headers(headers -> {
+                headers.contentTypeOptions(Customizer.withDefaults());
+                headers.frameOptions(frame -> frame.deny());
+                headers.xssProtection(xss -> xss.disable());
+                headers.referrerPolicy(rp -> rp.policy(
+                    ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                headers.permissionsPolicy(pp -> pp.policy(
+                    "camera=(), microphone=(), geolocation=(), payment=()"));
+                headers.cacheControl(Customizer.withDefaults());
+            })
+            .authorizeHttpRequests(auth -> auth
+                // Async/error dispatches are internal Tomcat re-dispatches — JWT was
+                // already validated on the original REQUEST dispatch.
+                .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                // Imágenes subidas (almacenamiento local) servidas públicamente.
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            // API stateless: sin token válido la respuesta es 401, nunca redirect
+            .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "No autenticado.")))
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 
     @Bean
