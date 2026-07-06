@@ -35,19 +35,17 @@ public class SecurityConfig {
         http
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors - > cors.configurationSource(corsConfigurationSource))
-        .sessionManagement(session - >
-            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        .sessionManagement(session - > session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .headers(headers - > headers
+        .contentTypeOptions(Customizer.withDefaults())
+        .frameOptions(frame - > frame.deny())
+        .xssProtection(xss - > xss.disable())
+        .referrerPolicy(rp - > rp.policy(
+            ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+        .permissionsPolicy(pp - > pp.policy(
+            "camera=(), microphone=(), geolocation=(), payment=()"))
+        .cacheControl(Customizer.withDefaults())
         )
-        .headers(headers - > {
-            headers.contentTypeOptions(Customizer.withDefaults());
-            headers.frameOptions(frame - > frame.deny());
-            headers.xssProtection(xss - > xss.disable());
-            headers.referrerPolicy(rp - > rp.policy(
-                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
-            headers.permissionsPolicy(pp - > pp.policy(
-                "camera=(), microphone=(), geolocation=(), payment=()"));
-            headers.cacheControl(Customizer.withDefaults());
-        })
         .authorizeHttpRequests(auth - > auth
         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
