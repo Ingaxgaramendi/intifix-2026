@@ -6,6 +6,7 @@ spring:
   # Permitir el override para que el contexto arranque.
   main:
     allow-bean-definition-overriding: true
+    lazy-initialization: true
 
   servlet:
     multipart:
